@@ -1,0 +1,1548 @@
+<!DOCTYPE html><html><head><meta charset="UTF-8"><style></style></head><body><!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Lista de Compras V44.1 - RealTime</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #0f172a;
+      color: #e5e7eb;
+      padding: 20px;
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 15px;
+      font-size: 22px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    /* Indicador de Status Online/Offline */
+    .status-dot {
+        width: 12px; height: 12px; border-radius: 50%; background: #64748b; display: inline-block;
+        box-shadow: 0 0 5px rgba(0,0,0,0.5); transition: background 0.3s, box-shadow 0.3s;
+    }
+    .status-dot.online { background: #22c55e; box-shadow: 0 0 10px #22c55e; }
+    .status-dot.offline { background: #ef4444; box-shadow: 0 0 8px #ef4444; }
+
+    .app {
+      max-width: 650px;
+      margin: 0 auto;
+      background: #020617;
+      border-radius: 10px;
+      padding: 18px;
+      box-shadow: 0 0 15px rgba(0,0,0,0.6);
+      position: relative;
+      transition: opacity 0.3s ease;
+    }
+
+    /* === BOTÃO FECHAR APP === */
+    .btn-fechar-app {
+        position: absolute;
+        top: -10px;
+        right: -10px;
+        width: 30px;
+        height: 30px;
+        background: #ef4444;
+        color: white;
+        border: 2px solid #0f172a;
+        border-radius: 50%;
+        font-weight: bold;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.5);
+        z-index: 100;
+        transition: transform 0.2s, background 0.2s;
+    }
+    .btn-fechar-app:hover { background: #dc2626; transform: scale(1.1); }
+
+    .app-closed-screen {
+        display: none;
+        text-align: center;
+        margin-top: 50px;
+        animation: fadeIn 0.5s;
+    }
+    .btn-reabrir {
+        background: #22c55e;
+        color: #052e16;
+        padding: 15px 30px;
+        border: none;
+        border-radius: 50px;
+        font-size: 18px;
+        font-weight: bold;
+        cursor: pointer;
+        box-shadow: 0 0 20px rgba(34, 197, 94, 0.4);
+        transition: transform 0.2s;
+    }
+    .btn-reabrir:hover { transform: scale(1.05); }
+
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+    /* Inputs e Labels */
+    label { font-size: 12px; display: block; margin-bottom: 4px; color: #94a3b8; }
+    input, select, textarea { width: 100%; padding: 8px 10px; border-radius: 6px; border: none; margin-bottom: 10px; font-size: 14px; height: 36px; }
+    select { background: #e5e7eb; color: #0f172a; cursor: pointer; }
+    input { background: #fff; color: #0f172a; }
+    
+    option:disabled { background-color: #cbd5e1; color: #94a3b8; text-decoration: line-through; font-style: italic; }
+    input:disabled, select:disabled { background: #334155; color: #94a3b8; cursor: not-allowed; }
+
+    /* GRID: Qtd, Un, Item, Valor */
+    .linha { 
+        display: grid; 
+        grid-template-columns: 60px 70px 1fr 90px; 
+        gap: 8px; 
+        margin-bottom: 10px; 
+        align-items: end; 
+    }
+    @media (max-width: 400px) {
+        .linha { grid-template-columns: 50px 60px 1fr 80px; gap: 5px; }
+    }
+
+    button { border: none; padding: 9px 14px; border-radius: 6px; font-size: 14px; font-weight: bold; cursor: pointer; transition: all 0.2s; }
+    .btn-add { background: #22c55e; color: #022c22; width: 100%; margin-bottom: 15px; opacity: 1; }
+    .btn-add:disabled { opacity: 0.5; cursor: not-allowed; background: #14532d; color: #4ade80;}
+    .btn-add.editando { background: #eab308; color: #422006; } 
+    
+    .btn-gerar { 
+        background: #38bdf8; 
+        color: #0f172a; 
+        width: 100%; 
+        margin-top: 5px; 
+        text-transform: uppercase; 
+        font-weight: 800; 
+    }
+    .btn-gerar:disabled { opacity: 0.5; cursor: not-allowed; background: #0c4a6e; color: #7dd3fc; }
+    .btn-gerar:hover:not(:disabled) { background: #0ea5e9; transform: translateY(-1px); }
+
+    /* BOTOES EXTRAS AGORA EM GRADE 2x2 */
+    .botoes-extras { 
+        display: grid; 
+        grid-template-columns: 1fr 1fr; /* 2 colunas */
+        gap: 8px; 
+        margin-top: 8px; 
+    }
+    
+    .btn-historico { background: #f97316; color: #0f172a; width: 100%; font-size: 13px; }
+    .btn-importar { background: #8b5cf6; color: #fff; width: 100%; font-size: 13px; }
+    .btn-importar:hover { background: #7c3aed; }
+    
+    .btn-gerenciar { background: #6366f1; color: white; width: 100%; font-size: 13px; }
+    .btn-gerenciar:hover { background: #4f46e5; }
+
+    /* NOVO BOTÃO NOVA LISTA (Ciano Escuro) */
+    .btn-nova-lista { background: #06b6d4; color: #083344; width: 100%; font-size: 13px; }
+    .btn-nova-lista:hover { background: #22d3ee; }
+    
+    .btn-remover { background: #ef4444; color: #fee2e2; font-size: 12px; padding: 4px 10px; margin-left: 10px; }
+
+    /* BOTÃO LARANJA (COPIAR) */
+    .btn-copiar-laranja { 
+        background: #fd7e14; 
+        color: #000; 
+        font-weight: 900; 
+        text-transform: uppercase; 
+        border-radius: 20px; 
+        padding: 8px 10px; 
+        font-size: 11px; 
+        box-shadow: 0 2px 5px rgba(0,0,0,0.5); 
+        border: 1px solid #e8590c; 
+        cursor: pointer; 
+        transition: transform 0.2s; 
+    }
+    .btn-copiar-laranja:hover { background: #ff922b; transform: scale(1.05); }
+
+    /* BOTÃO LINK ZAP (VERDE) */
+    .btn-link-zap { 
+        background: #25D366; 
+        color: #052e16; 
+        font-weight: 900; 
+        text-transform: uppercase; 
+        border-radius: 20px; 
+        padding: 8px 10px; 
+        font-size: 11px; 
+        box-shadow: 0 2px 5px rgba(0,0,0,0.5); 
+        border: 1px solid #14532d; 
+        cursor: pointer; 
+        transition: transform 0.2s;
+    }
+    .btn-link-zap:hover { background: #4ade80; transform: scale(1.05); }
+
+    /* BOTÃO ALTERAR (ROXO) */
+    .btn-alterar-roxo {
+        background: #a855f7; 
+        color: #fff;
+        font-weight: 900;
+        text-transform: uppercase; 
+        border-radius: 20px; 
+        padding: 8px 10px;
+        font-size: 11px;
+        border: 1px solid #7e22ce;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.5);
+        cursor: pointer;
+        transition: transform 0.2s;
+    }
+    .btn-alterar-roxo:hover { background: #c084fc; transform: scale(1.05); }
+
+    .btn-trash { background: #ef4444; color: #ffffff; font-size: 16px; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; border: 1px solid #b91c1c; transition: transform 0.2s, background 0.2s; box-shadow: 0 2px 5px rgba(0,0,0,0.3); }
+    .btn-trash:hover { transform: scale(1.1); background: #dc2626; }
+
+    ul { list-style: none; margin-top: 5px; }
+    li { display: flex; justify-content: space-between; align-items: center; background: #020617; border: 1px solid #1f2937; padding: 8px 10px; border-radius: 6px; font-size: 14px; margin-bottom: 4px; cursor: pointer; transition: border-color 0.2s; }
+    li:hover { border-color: #38bdf8; }
+    .item-texto { flex-grow: 1; display: flex; flex-direction: column; }
+    .item-detalhe-preco { font-size: 11px; color: #4ade80; margin-top: 2px; }
+
+    .resumo { margin-top: 10px; font-size: 13px; color: #a5b4fc; display: flex; justify-content: space-between; font-weight: bold; }
+    
+    .output-wrapper { position: relative; margin-top: 12px; }
+    
+    .area-botoes-copiar { 
+        display: none; 
+        justify-content: flex-end; 
+        gap: 10px; 
+        margin-bottom: 8px; 
+    }
+    
+    textarea#saida { width: 100%; height: 320px; resize: vertical; font-family: monospace; white-space: pre; background: #fff; color: #000; border: 2px solid #38bdf8; }
+
+    .msg-copiado { font-size: 12px; color: #4ade80; margin-top: 4px; display: none; }
+
+    .toast-container { position: fixed; bottom: 20px; right: 20px; z-index: 9999; }
+    .toast { 
+        background: linear-gradient(135deg,#f97316,#ec4899); 
+        color: #fff; 
+        padding: 12px 16px; 
+        margin-top: 8px; 
+        border-radius: 8px; 
+        font-size: 13px; 
+        box-shadow: 0 4px 15px rgba(0,0,0,0.4); 
+        animation: slideIn 0.4s ease-out, fadeOut 0.4s ease-in 6s forwards; 
+        white-space: pre-line; 
+        max-width: 320px;
+        line-height: 1.4;
+    }
+    .toast.erro { background: linear-gradient(135deg,#ef4444,#b91c1c); border-left: 5px solid #7f1d1d; }
+    .toast.sucesso { background: linear-gradient(135deg,#22c55e,#15803d); }
+    .toast.aviso { 
+        background: linear-gradient(135deg, #8b5cf6, #f472b6);
+        border-left: 5px solid #fff;
+        font-weight: bold;
+        box-shadow: 0 0 20px rgba(139, 92, 246, 0.5);
+    }
+    .toast.info { background: linear-gradient(135deg, #3b82f6, #2563eb); }
+
+    @keyframes slideIn { from { transform: translateX(120%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+    @keyframes fadeOut { from { opacity: 1; } to { opacity: 0; transform: translateX(120%); } }
+
+    .modal-backdrop { display: none; position: fixed; inset: 0; background: rgba(15,23,42,0.85); z-index: 999; justify-content: center; align-items: center; }
+    .modal-backdrop.open { display: flex; }
+    .modal { background: #020617; border-radius: 10px; max-width: 700px; width: 90%; max-height: 80vh; overflow-y: auto; padding: 16px; box-shadow: 0 0 20px rgba(0,0,0,0.7); position: relative; }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    .modal-close { cursor: pointer; font-size: 22px; padding: 2px 8px; border-radius: 999px; background: #1e293b; }
+    
+    .historico-item { 
+        border: 1px solid #1f2937; border-radius: 8px; padding: 10px; margin-bottom: 10px; background: #020617; font-size: 13px; transition: border-color 0.3s;
+    }
+    .historico-item.favorito { border: 2px solid #eab308; background: #1e1b0c; }
+
+    .historico-top-bar { display: flex; justify-content: flex-start; align-items: center; gap: 15px; margin-bottom: 5px; border-bottom: 1px dashed #334155; padding-bottom: 5px; }
+    
+    .historico-actions { 
+        display: grid; 
+        grid-template-columns: 1fr 1fr 1fr; 
+        gap: 5px; 
+        margin-top: 10px; 
+    }
+    .historico-actions button { width: 100%; }
+
+    .btn-star {
+        background: transparent; border: none; font-size: 20px; cursor: pointer; transition: transform 0.2s; filter: grayscale(100%); padding: 0 5px;
+    }
+    .btn-star:hover { transform: scale(1.2); }
+    .btn-star.ativo { filter: grayscale(0%); text-shadow: 0 0 10px gold; transform: scale(1.1); }
+
+    .timer-bar-container { width: 100%; height: 4px; background: #1e293b; border-radius: 2px; margin-bottom: 10px; overflow: hidden; }
+    .timer-bar { height: 100%; background: #f472b6; width: 100%; transition: width linear; }
+
+    #importArea { width: 100%; height: 200px; background: #fff; color: #000; font-family: monospace; border-radius: 6px; padding: 10px; margin-bottom: 10px; border: 2px solid #8b5cf6;}
+    .btn-processar { background: #8b5cf6; color: white; width: 100%; padding: 12px; font-size: 16px; }
+
+    #listaItensPersonalizados { list-style: none; margin-top: 10px; }
+    .item-personalizado { display: flex; justify-content: space-between; align-items: center; background: #1e293b; padding: 10px; border-radius: 6px; margin-bottom: 5px; border: 1px solid #334155;}
+    .item-personalizado span { color: #e5e7eb; }
+    
+    /* Área de botões no item personalizado */
+    .actions-personalizado { display: flex; gap: 10px; }
+
+    .btn-edit-item { background: transparent; border: none; color: #facc15; cursor: pointer; font-size: 16px; transition: transform 0.2s; }
+    .btn-edit-item:hover { transform: scale(1.2); color: #fbbf24; }
+
+    .btn-trash-item { background: transparent; border: none; color: #ef4444; cursor: pointer; font-size: 18px; }
+    .btn-trash-item:hover { color: #dc2626; transform: scale(1.2); }
+
+    .modal-confirm-backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 10000; justify-content: center; align-items: center; }
+    .modal-confirm-backdrop.open { display: flex; }
+    .modal-confirm { background: linear-gradient(135deg, #b91c1c, #ef4444); color: white; padding: 20px; border-radius: 15px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.5); width: 300px; animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+    .modal-confirm h3 { margin-bottom: 15px; font-size: 18px; }
+    .confirm-actions { display: flex; justify-content: center; gap: 15px; }
+    .btn-sim { background: white; color: #b91c1c; border: none; padding: 8px 20px; border-radius: 20px; font-weight: bold; cursor: pointer; transition: transform 0.2s;}
+    .btn-sim:hover { transform: scale(1.1); }
+    .btn-nao { background: rgba(0,0,0,0.3); color: white; border: 1px solid rgba(255,255,255,0.5); padding: 8px 20px; border-radius: 20px; font-weight: bold; cursor: pointer; transition: background 0.2s; }
+    .btn-nao:hover { background: rgba(0,0,0,0.5); }
+    
+    @keyframes popIn { from { transform: scale(0.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+  </style>
+</head>
+<body>
+
+  <h1>Lista de Compras <span id="statusIndicator" class="status-dot" title="Verificando conexão..."></span></h1>
+
+  <div class="app-closed-screen" id="appClosedScreen">
+      <h2 style="color: #64748b; margin-bottom: 20px;">Aplicativo Fechado</h2>
+      <button class="btn-reabrir" id="btnReabrirApp">Abrir Lista de Compras</button>
+  </div>
+
+  <div class="app" id="appContainer">
+    <button class="btn-fechar-app" id="btnFecharApp" title="Fechar App">✕</button>
+
+    <label for="responsavel">Responsável *</label>
+    <select id="responsavel"> 
+      <option value="">Selecione...</option>
+    </select>
+
+    <div class="linha">
+      <div>
+        <label for="quantidade">Qtd</label>
+        <input type="number" id="quantidade" min="1" placeholder="..." disabled="">
+      </div>
+      <div>
+        <label for="unidade">Un</label>
+        <select id="unidade" disabled="">
+          <option value="">...</option>
+          <option value="un">un</option>
+          <option value="kg">kg</option>
+          <option value="g">g</option>
+          <option value="L">L</option>
+          <option value="ml">ml</option>
+          <option value="cx">cx</option>
+          <option value="pct">pct</option>
+          <option value="Lt">Lt</option>
+          <option value="Bdj">Bdj</option>
+        </select>
+      </div>
+      <div>
+        <label for="itemNome">Item</label>
+        <input type="text" id="itemNome" list="sugestoes-produtos" placeholder="Buscar..." disabled="">
+        <datalist id="sugestoes-produtos"></datalist>
+      </div>
+      <div>
+        <label for="precoItem">Valor: €</label>
+        <input type="tel" id="precoItem" placeholder="€ 0,00" disabled="" oninput="mascaraMoeda(this)">
+      </div>
+    </div>
+    
+    <button class="btn-add" id="btnAdd" disabled="">Adicionar item</button>
+
+    <ul id="lista"></ul>
+    
+    <div class="resumo" id="resumoContainer">
+      <span>Itens: 0</span>
+      </div>
+
+    <button class="btn-gerar" id="btnGerar" disabled="">ENVIAR LISTA PARA WHATSAPP</button>
+    
+    <div class="botoes-extras">
+        <button class="btn-historico" id="btnHistorico">Histórico</button>
+        <button class="btn-gerenciar" id="btnGerenciarSugestoes">⚙️ Itens Salvos</button>
+        <button class="btn-importar" id="btnImportar">📥 Importar Lista</button>
+        <button class="btn-nova-lista" id="btnNovaLista">✨ Nova Lista</button>
+    </div>
+    
+    <div class="msg-copiado" id="msgCopiado">Texto copiado!</div>
+
+    <div class="output-wrapper">
+        <div class="area-botoes-copiar" id="areaBotoesCopiar">
+            <button id="btnGerarLink" class="btn-link-zap">🔗 ENVIAR LISTA PARA GRUPO</button>
+            <button id="btnCopiarMain" class="btn-copiar-laranja">COPIAR LISTA</button>
+        </div>
+        
+        <textarea id="saida" readonly="" placeholder="O texto formatado aparecerá aqui."></textarea>
+    </div>
+  </div>
+
+  <div class="toast-container" id="toastContainer"></div>
+
+  <div class="modal-backdrop" id="modalBackdrop">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>Histórico</h2>
+        <span class="modal-close" id="modalClose">×</span>
+      </div>
+      <div class="timer-bar-container">
+         <div class="timer-bar" id="timerBarHistorico"></div>
+      </div>
+      <p style="font-size:11px; color:#ef4444; margin-bottom:10px;">Fechamento automático por segurança.</p>
+      <div id="historicoConteudo"></div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="modalSugestoesBackdrop">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>Itens Aprendidos</h2>
+        <span class="modal-close" id="modalSugestoesClose">×</span>
+      </div>
+      <p style="font-size:13px; color:#a5b4fc; margin-bottom:10px;">
+        Aqui estão os itens novos que você adicionou (Ordem Alfabética).
+      </p>
+      <div id="listaSugestoesContainer" style="max-height:300px; overflow-y:auto;">
+          <ul id="listaItensPersonalizados"></ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="modalImportBackdrop">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>Importar do WhatsApp</h2>
+        <span class="modal-close" id="modalImportClose">×</span>
+      </div>
+      <p style="margin-bottom: 5px; font-size: 13px; color: #a5b4fc;">Cole a lista completa.</p>
+      <div class="timer-bar-container">
+         <div class="timer-bar" id="timerBarImport"></div>
+      </div>
+      <p style="font-size:11px; color:#ef4444; margin-bottom:10px;">Fechamento automático se não houver atividade.</p>
+      <textarea id="importArea" placeholder="Cole aqui..."></textarea>
+      <button class="btn-processar" id="btnProcessarImportacao">PROCESSAR E SALVAR NO HISTÓRICO</button>
+    </div>
+  </div>
+
+  <div class="modal-confirm-backdrop" id="modalConfirmacao">
+      <div class="modal-confirm">
+          <h3 id="tituloConfirmacao">🗑️ Excluir esta lista?</h3>
+          <p id="textoConfirmacao" style="margin-bottom:20px; font-size:14px; opacity:0.9;">Essa ação não pode ser desfeita.</p>
+          <div class="confirm-actions">
+              <button class="btn-nao" id="btnConfirmarNao">Não</button>
+              <button class="btn-sim" id="btnConfirmarSim">Sim, prosseguir</button>
+          </div>
+      </div>
+  </div>
+
+<script>
+    // URL PARA SINCRONIZAÇÃO
+    const URL_SERVIDOR_JSON = 'produtos.json'; 
+
+    let CATEGORY_ORDER = [
+        "Padaria & Pastelaria", "Hortofrutícola", "Carnes & Peixes Frescos", "Congelados", "Laticínios & Frios",
+        "Mercearia Seca & Enlatados", "Especiarias & Condimentos", "Bebidas", "Casa & Utilidades", "Limpeza Doméstica",
+        "Farmácia / Saúde", "Higiene Pessoal", "Higiene Infantil", "Pet Shop"
+    ];
+
+    const BANCO_DADOS_INICIAL = {
+        "Padaria & Pastelaria": ["Pão de Forma", "Pão Francês", "Pão de Queijo", "Bolo", "Torrada", "Bisnaguinha"],
+        "Hortofrutícola": ["Banana", "Maçã", "Uva", "Batata", "Cebola", "Tomate", "Alface", "Cenoura", "Alho", "Limão"],
+        "Carnes & Peixes Frescos": ["Carne Moída", "Frango", "Peito de Frango", "Bife", "Peixe", "Ovos", "Linguiça"],
+        "Congelados": ["Pizza", "Hambúrguer", "Lasanha", "Batata Frita", "Sorvete"],
+        "Laticínios & Frios": ["Leite", "Queijo", "Presunto", "Manteiga", "Requeijão", "Iogurte", "Leite Condensado", "Creme de Leite"],
+        "Mercearia Seca & Enlatados": ["Arroz", "Feijão", "Macarrão", "Açúcar", "Café", "Óleo", "Azeite", "Milho", "Ervilha", "Molho de Tomate", "Farinha de Trigo", "Biscoito"],
+        "Especiarias & Condimentos": ["Sal", "Pimenta", "Orégano", "Maionese", "Ketchup", "Mostarda"],
+        "Bebidas": ["Água", "Suco", "Refrigerante", "Cerveja", "Vinho"],
+        "Casa & Utilidades": ["Papel Higiênico", "Papel Toalha", "Guardanapo", "Saco de Lixo"],
+        "Limpeza Doméstica": ["Detergente", "Sabão em Pó", "Amaciante", "Água Sanitária", "Desinfetante", "Esponja"],
+        "Farmácia / Saúde": ["Algodão", "Curativo", "Álcool", "Vitamina"],
+        "Higiene Pessoal": ["Sabonete", "Shampoo", "Condicionador", "Pasta de Dente", "Escova de Dente", "Desodorante"],
+        "Higiene Infantil": ["Fralda", "Lenço Umedecido", "Pomada"],
+        "Pet Shop": ["Ração", "Petisco", "Areia de Gato"]
+    };
+
+    const unidadesValidas = ["un", "kg", "g", "L", "ml", "cx", "pct", "Lta", "bdj"];
+
+    const dadosResponsavel = [
+        { texto: "Victor", valor: "victor" },
+        { texto: "Vic", valor: "vic" },
+        { texto: "Deby", valor: "debora" }, 
+        { texto: "Papito", valor: "papito" }
+    ];
+
+    let listaSugestoesMestra = [];
+    let bancoDadosCategorizado = {}; 
+    const KEY_CUSTOM_ITEMS = 'meus_produtos_extras_v1';
+    const KEY_PRECOS_MEMORIA = 'meus_precos_v1';
+    const KEY_DB_CACHE = 'meu_banco_dados_cache_v2'; 
+    
+    let importTimer = null;
+    let timerBarIntervalImport = null;
+    let historicoTimer = null;
+    let timerBarIntervalHistorico = null;
+
+    // --- LÓGICA DE MONITORAMENTO ONLINE/OFFLINE EM TEMPO REAL ---
+    function atualizarStatusVisual(online) {
+        const statusDot = document.getElementById('statusIndicator');
+        if (online) {
+            statusDot.className = "status-dot online";
+            statusDot.title = "Online e Atualizado";
+            // Tenta sincronizar se voltou a ficar online
+            inicializarBancoDeProdutos(); 
+        } else {
+            statusDot.className = "status-dot offline";
+            statusDot.title = "Modo Offline (Sem internet)";
+        }
+    }
+
+    window.addEventListener('online', () => {
+        atualizarStatusVisual(true);
+        showToast("Conexão restabelecida! 🌐", "sucesso");
+    });
+
+    window.addEventListener('offline', () => {
+        atualizarStatusVisual(false);
+        showToast("Você está offline! 📵", "erro");
+    });
+    // -------------------------------------------------------------
+
+    async function inicializarBancoDeProdutos() {
+        const statusDot = document.getElementById('statusIndicator');
+        const cacheLocal = localStorage.getItem(KEY_DB_CACHE);
+        
+        if (cacheLocal) {
+            bancoDadosCategorizado = JSON.parse(cacheLocal);
+        } else {
+            bancoDadosCategorizado = BANCO_DADOS_INICIAL;
+        }
+
+        atualizarDatalist();
+
+        // Se o navegador disser que está offline, nem tenta o fetch
+        if (!navigator.onLine) {
+            atualizarStatusVisual(false);
+            return;
+        }
+
+        try {
+            statusDot.title = "Verificando atualizações...";
+            const response = await fetch(URL_SERVIDOR_JSON + '?v=' + new Date().getTime());
+            
+            if (response.ok) {
+                const dadosServidor = await response.json();
+                if (JSON.stringify(dadosServidor) !== JSON.stringify(bancoDadosCategorizado)) {
+                    bancoDadosCategorizado = dadosServidor;
+                    localStorage.setItem(KEY_DB_CACHE, JSON.stringify(dadosServidor));
+                    atualizarDatalist(); 
+                    const chaves = Object.keys(dadosServidor);
+                    if(chaves.length > 0) CATEGORY_ORDER = chaves;
+                    showToast("Banco de produtos atualizado!", "info");
+                }
+                atualizarStatusVisual(true);
+            } else {
+                throw new Error("Arquivo não encontrado");
+            }
+        } catch (error) {
+            atualizarStatusVisual(false);
+        }
+    }
+    
+    // Checagem periódica (a cada 30 segundos) para garantir
+    setInterval(() => {
+        if(navigator.onLine) inicializarBancoDeProdutos();
+    }, 30000);
+
+    function atualizarDatalist() {
+        const baseProdutos = processarObjetoJSON(bancoDadosCategorizado);
+        const customItems = JSON.parse(localStorage.getItem(KEY_CUSTOM_ITEMS)) || [];
+        listaSugestoesMestra = [...new Set([...baseProdutos, ...customItems])].sort((a, b) => a.localeCompare(b));
+        
+        const datalistEl = document.getElementById('sugestoes-produtos');
+        datalistEl.innerHTML = listaSugestoesMestra.map(item => `<option value="${item}">`).join('');
+    }
+
+    function processarObjetoJSON(jsonObj) {
+        let itens = [];
+        for (const categoria in jsonObj) {
+            if (Array.isArray(jsonObj[categoria])) itens = itens.concat(jsonObj[categoria]);
+        }
+        return itens;
+    }
+
+    function aprenderNovoProduto(novoItem) {
+        const existe = listaSugestoesMestra.some(p => p.toLowerCase() === novoItem.toLowerCase());
+        if (!existe) {
+            let customItems = JSON.parse(localStorage.getItem(KEY_CUSTOM_ITEMS)) || [];
+            customItems.push(novoItem);
+            localStorage.setItem(KEY_CUSTOM_ITEMS, JSON.stringify(customItems));
+            atualizarDatalist();
+        }
+    }
+
+    function removerItemAprendido(itemParaRemover) {
+        let customItems = JSON.parse(localStorage.getItem(KEY_CUSTOM_ITEMS)) || [];
+        customItems = customItems.filter(i => i !== itemParaRemover);
+        localStorage.setItem(KEY_CUSTOM_ITEMS, JSON.stringify(customItems));
+        atualizarDatalist();
+        renderizarModalSugestoes();
+        showToast(`Item "${itemParaRemover}" removido!`, "sucesso");
+    }
+    
+    function editarItemAprendido(oldName) {
+        const novoNome = prompt("Corrigir nome do item:", oldName);
+        if (novoNome && novoNome.trim() !== "" && novoNome !== oldName) {
+            const nomeFormatado = capitalizarNome(novoNome);
+            let customItems = JSON.parse(localStorage.getItem(KEY_CUSTOM_ITEMS)) || [];
+            
+            customItems = customItems.filter(i => i !== oldName);
+            if (!customItems.includes(nomeFormatado)) {
+                customItems.push(nomeFormatado);
+            }
+            
+            localStorage.setItem(KEY_CUSTOM_ITEMS, JSON.stringify(customItems));
+            atualizarDatalist();
+            renderizarModalSugestoes();
+            showToast("Item atualizado!", "sucesso");
+        }
+    }
+
+    function salvarPrecoMemoria(nomeItem, preco) {
+        if (!nomeItem || preco <= 0.02) return; 
+        let memoria = JSON.parse(localStorage.getItem(KEY_PRECOS_MEMORIA)) || {};
+        memoria[nomeItem.toLowerCase()] = preco;
+        localStorage.setItem(KEY_PRECOS_MEMORIA, JSON.stringify(memoria));
+    }
+
+    function buscarPrecoMemoria(nomeItem) {
+        let memoria = JSON.parse(localStorage.getItem(KEY_PRECOS_MEMORIA)) || {};
+        return memoria[nomeItem.toLowerCase()] || 0;
+    }
+
+    function obterPrioridadeCategoria(nomeItem) {
+        for (const categoriaKey in bancoDadosCategorizado) {
+            const itensCategoria = bancoDadosCategorizado[categoriaKey].map(i => i.toLowerCase());
+            if (itensCategoria.includes(nomeItem.toLowerCase())) {
+                const index = CATEGORY_ORDER.indexOf(categoriaKey);
+                return index !== -1 ? index : 99;
+            }
+        }
+        return 99; 
+    }
+
+    function capitalizarNome(nome) {
+        if (!nome) return "";
+        const texto = nome.trim();
+        return texto.charAt(0).toUpperCase() + texto.slice(1).toLowerCase();
+    }
+
+    function mascaraMoeda(campo) {
+        let valor = campo.value.replace(/\D/g, ""); 
+        if (valor === "") { campo.value = ""; return; }
+        if (valor.length > 4) { valor = valor.slice(0, 4); }
+        valor = (parseInt(valor) / 100).toFixed(2);
+        valor = valor.replace(".", ",");
+        campo.value = "€ " + valor;
+    }
+
+    let lista = [];
+    let editIndex = -1; 
+    let idListaEmEdicao = null; 
+    let snapshotListaOriginal = null;
+
+    const MAX_HIST = 10; 
+    const STORAGE_KEY = 'listaComprasHistorico_v18';
+    let indexParaExcluir = -1; 
+    let tipoConfirmacao = ''; 
+
+    const appContainer = document.getElementById('appContainer');
+    const appClosedScreen = document.getElementById('appClosedScreen');
+    const btnReabrirApp = document.getElementById('btnReabrirApp');
+    const btnFecharApp = document.getElementById('btnFecharApp');
+    const ulLista = document.getElementById('lista');
+    const resumoContainer = document.getElementById('resumoContainer');
+    const msgCopiado = document.getElementById('msgCopiado');
+    const saida = document.getElementById('saida');
+    const btnCopiarMain = document.getElementById('btnCopiarMain');
+    const btnGerarLink = document.getElementById('btnGerarLink');
+    const areaBotoesCopiar = document.getElementById('areaBotoesCopiar');
+    
+    const responsavelEl = document.getElementById('responsavel');
+    const quantidadeEl = document.getElementById('quantidade');
+    const unidadeEl = document.getElementById('unidade');
+    const precoItemEl = document.getElementById('precoItem'); 
+    const itemNomeEl = document.getElementById('itemNome');
+    const btnAdd = document.getElementById('btnAdd');
+    const btnGerar = document.getElementById('btnGerar');
+    
+    const btnHistorico = document.getElementById('btnHistorico');
+    const btnGerenciarSugestoes = document.getElementById('btnGerenciarSugestoes');
+    const btnNovaLista = document.getElementById('btnNovaLista'); 
+    
+    const toastContainer = document.getElementById('toastContainer');
+    
+    const modalBackdrop = document.getElementById('modalBackdrop');
+    const modalClose = document.getElementById('modalClose');
+    const historicoConteudo = document.getElementById('historicoConteudo');
+    
+    const btnImportar = document.getElementById('btnImportar');
+    const modalImportBackdrop = document.getElementById('modalImportBackdrop');
+    const modalImportClose = document.getElementById('modalImportClose');
+    
+    const modalSugestoesBackdrop = document.getElementById('modalSugestoesBackdrop');
+    const modalSugestoesClose = document.getElementById('modalSugestoesClose');
+    const listaItensPersonalizados = document.getElementById('listaItensPersonalizados');
+
+    const btnProcessarImportacao = document.getElementById('btnProcessarImportacao');
+    const importArea = document.getElementById('importArea');
+    const modalConfirmacao = document.getElementById('modalConfirmacao');
+    const tituloConfirmacao = document.getElementById('tituloConfirmacao');
+    const textoConfirmacao = document.getElementById('textoConfirmacao');
+    const btnConfirmarSim = document.getElementById('btnConfirmarSim');
+    const btnConfirmarNao = document.getElementById('btnConfirmarNao');
+    
+    const timerBarImport = document.getElementById('timerBarImport');
+    const timerBarHistorico = document.getElementById('timerBarHistorico');
+
+    function popularSelect(elemento, dados) {
+        dados.forEach(item => {
+            const option = document.createElement('option');
+            option.value = item.valor; 
+            option.textContent = item.texto; 
+            elemento.appendChild(option);
+        });
+    }
+
+    popularSelect(responsavelEl, dadosResponsavel);
+
+    function atualizarFluxo() {
+      const temResponsavel = !!responsavelEl.value;
+      
+      if (!temResponsavel) {
+        quantidadeEl.disabled = true; 
+        unidadeEl.disabled = true; 
+        precoItemEl.disabled = true;
+        itemNomeEl.disabled = true; 
+        btnAdd.disabled = true;
+      } else {
+        quantidadeEl.disabled = false;
+        const qtdValida = parseInt(quantidadeEl.value) >= 1;
+        unidadeEl.disabled = !qtdValida;
+        if (!qtdValida) { 
+            unidadeEl.value = ""; 
+            precoItemEl.disabled = true;
+            itemNomeEl.disabled = true; 
+        } else { 
+            itemNomeEl.disabled = !unidadeEl.value; 
+            precoItemEl.disabled = !unidadeEl.value;
+        }
+      }
+
+      const camposItemCompletos = !quantidadeEl.disabled && quantidadeEl.value >= 1 && !unidadeEl.disabled && unidadeEl.value !== "" && !itemNomeEl.disabled && itemNomeEl.value.trim() !== "";
+      
+      btnAdd.disabled = !camposItemCompletos;
+
+      if (editIndex !== -1) { btnAdd.textContent = 'Salvar Alteração'; btnAdd.classList.add('editando'); } else { btnAdd.textContent = 'Adicionar item'; btnAdd.classList.remove('editando'); }
+
+      const listaTemItens = lista.length > 0;
+      btnGerar.disabled = !(temResponsavel && listaTemItens);
+      
+      if(idListaEmEdicao !== null) {
+          btnGerar.textContent = "SALVAR ALTERAÇÕES NA LISTA";
+          btnGerar.style.background = "#a855f7"; 
+          btnGerar.style.color = "#fff";
+      } else {
+          btnGerar.textContent = "ENVIAR LISTA PARA WHATSAPP";
+          btnGerar.style.background = "#38bdf8"; 
+          btnGerar.style.color = "#0f172a";
+      }
+    }
+
+    responsavelEl.addEventListener('change', atualizarFluxo);
+    
+    quantidadeEl.addEventListener('input', () => {
+      const val = parseInt(quantidadeEl.value);
+      if (quantidadeEl.value !== "" && (isNaN(val) || val < 1)) showToast('A quantidade mínima é 1.', 'erro');
+      atualizarFluxo();
+    });
+    unidadeEl.addEventListener('change', atualizarFluxo);
+    
+    itemNomeEl.addEventListener('input', () => {
+        atualizarFluxo();
+        const nome = itemNomeEl.value.trim();
+        if (nome.length > 2 && editIndex === -1) {
+            const precoSalvo = buscarPrecoMemoria(nome);
+            if (precoSalvo > 0) {
+                 let valStr = precoSalvo.toFixed(2).replace('.', ',');
+                 precoItemEl.value = "€ " + valStr;
+            }
+        }
+    });
+    
+    // --- CORREÇÃO: ADICIONADO LISTENER DE CHANGE PARA DATALIST ---
+    itemNomeEl.addEventListener('change', () => {
+        atualizarFluxo();
+    });
+    // -------------------------------------------------------------
+
+    function showToast(msg, tipo = 'normal') {
+      const div = document.createElement('div');
+      div.className = `toast ${tipo}`; 
+      div.textContent = msg;
+      toastContainer.appendChild(div);
+      setTimeout(() => div.remove(), 6000); 
+    }
+    
+    function calcularSubtotalItem(qtd, unidade, precoUnitario) {
+        let fatorDivisao = 1;
+        if (['g', 'ml'].includes(unidade)) {
+            fatorDivisao = 1000;
+        }
+        return (qtd / fatorDivisao) * precoUnitario;
+    }
+
+    btnAdd.addEventListener('click', () => {
+      const qtd = parseInt(quantidadeEl.value, 10);
+      const textoBruto = itemNomeEl.value.trim();
+      const nome = capitalizarNome(textoBruto);
+      const unidade = unidadeEl.value;
+      
+      let preco = 0;
+      if (precoItemEl.value) {
+          const apenasNumeros = precoItemEl.value.replace(/[^\d,]/g, '');
+          preco = parseFloat(apenasNumeros.replace(',', '.'));
+      }
+      if (isNaN(preco)) preco = 0;
+
+      aprenderNovoProduto(nome);
+      salvarPrecoMemoria(nome, preco);
+
+      const duplicado = lista.some((item, idx) => {
+        if (editIndex !== -1 && idx === editIndex) return false;
+        return item.nome.toLowerCase() === nome.toLowerCase();
+      });
+
+      if (duplicado) { showToast(`⛔ O item "${nome}" já está na lista!`, 'erro'); itemNomeEl.focus(); return; }
+
+      const novoItemObj = { qtd, nome, unidade, preco };
+
+      if (editIndex > -1) { 
+          lista[editIndex] = novoItemObj; 
+          showToast('Item atualizado com sucesso!', 'sucesso'); 
+          editIndex = -1; 
+      } else { 
+          lista.push(novoItemObj); 
+          showToast('Item adicionado!', 'sucesso'); 
+      }
+
+      renderLista();
+      quantidadeEl.value = ''; unidadeEl.value = ''; itemNomeEl.value = ''; precoItemEl.value = '';
+      atualizarFluxo(); quantidadeEl.focus();
+    });
+
+    function renderLista() {
+      ulLista.innerHTML = '';
+      let totalGeral = 0;
+      let todosTemPreco = true;
+
+      lista.forEach((item, idx) => {
+        const itemPreco = item.preco || 0;
+        
+        if (itemPreco <= 0) todosTemPreco = false;
+
+        const subtotal = calcularSubtotalItem(item.qtd, item.unidade, itemPreco);
+        totalGeral += subtotal;
+
+        const li = document.createElement('li');
+        const divTexto = document.createElement('div');
+        divTexto.className = 'item-texto';
+        
+        const spanPrincipal = document.createElement('span');
+        spanPrincipal.textContent = `${item.qtd} ${item.unidade} ${item.nome}`;
+        divTexto.appendChild(spanPrincipal);
+        
+        if (subtotal > 0) {
+            const spanPreco = document.createElement('span');
+            spanPreco.className = 'item-detalhe-preco';
+            spanPreco.textContent = `(€ ${itemPreco.toFixed(2)}/${item.unidade === 'g' ? 'kg' : item.unidade === 'ml' ? 'L' : item.unidade}) = Total: € ${subtotal.toFixed(2)}`;
+            divTexto.appendChild(spanPreco);
+        }
+
+        divTexto.onclick = () => carregarEdicao(idx); 
+
+        const btnRem = document.createElement('button');
+        btnRem.textContent = 'X'; btnRem.className = 'btn-remover';
+        btnRem.onclick = (e) => { e.stopPropagation(); solicitarExclusaoItem(idx); };
+        
+        li.appendChild(divTexto); li.appendChild(btnRem);
+        ulLista.appendChild(li);
+      });
+
+      const termo = lista.length === 1 ? 'item' : 'itens';
+      
+      let htmlResumo = `<span>Total: ${lista.length} ${termo}</span>`;
+      
+      if (todosTemPreco && lista.length > 0) {
+          htmlResumo += `<span id="totalEstimadoDisplay" style="color:#4ade80;">€ ${totalGeral.toFixed(2)}</span>`;
+      }
+
+      resumoContainer.innerHTML = htmlResumo;
+      atualizarFluxo();
+    }
+
+    function solicitarExclusaoItem(index) {
+        indexParaExcluir = index;
+        tipoConfirmacao = 'excluir_item'; 
+        const item = lista[index];
+        tituloConfirmacao.textContent = '🗑️ Remover item?';
+        textoConfirmacao.textContent = `Deseja remover "${item.nome}" da lista?`;
+        modalConfirmacao.classList.add('open');
+    }
+
+    function carregarEdicao(index) {
+      const item = lista[index];
+      editIndex = index; 
+      quantidadeEl.disabled = false; quantidadeEl.value = item.qtd;
+      unidadeEl.disabled = false; unidadeEl.value = item.unidade;
+      itemNomeEl.disabled = false; itemNomeEl.value = item.nome;
+      precoItemEl.disabled = false; 
+      
+      if (item.preco && item.preco > 0) {
+         let valStr = item.preco.toFixed(2).replace('.', ',');
+         precoItemEl.value = "€ " + valStr;
+      } else {
+         precoItemEl.value = '';
+      }
+
+      showToast(`Editando: ${item.nome}`, 'normal'); itemNomeEl.focus(); atualizarFluxo();
+    }
+
+    function removerItem(index) {
+      if (index === editIndex) { 
+          editIndex = -1; 
+          quantidadeEl.value = ''; itemNomeEl.value = ''; unidadeEl.value = ''; precoItemEl.value = '';
+      } else if (index < editIndex) { editIndex--; }
+      lista.splice(index, 1); renderLista();
+    }
+
+    btnGerar.addEventListener('click', () => {
+      try {
+          if (lista.length === 0) return;
+          gerarListaFinal(true);
+      } catch (err) {
+          console.error(err);
+          showToast('Erro ao gerar lista! Verifique o console.', 'erro');
+      }
+    });
+
+    function gerarListaFinal(salvarHistorico) {
+      const nomeResp = responsavelEl.options[responsavelEl.selectedIndex].text;
+      
+      // 1. Gera o Código de Versão AGORA (para ser o mais atual possível)
+      const cod = gerarCodigoAssinatura();
+      
+      // 2. Gera o Texto Completo COM esse código
+      let listaOrdenada = [...lista]; 
+      listaOrdenada.sort((a, b) => {
+          const prioridadeA = obterPrioridadeCategoria(a.nome);
+          const prioridadeB = obterPrioridadeCategoria(b.nome);
+          if (prioridadeA === prioridadeB) return a.nome.localeCompare(b.nome);
+          return prioridadeA - prioridadeB;
+      });
+
+      let texto = `*================*\n   *LISTA DE COMPRAS*\n*================*\n`;
+      let valorTotalGeral = 0;
+      let todosTemPreco = true;
+
+      listaOrdenada.forEach(item => { 
+          texto += `* ${item.qtd} ${item.unidade} ${item.nome}\n`; 
+          if (item.preco && item.preco > 0) {
+              valorTotalGeral += calcularSubtotalItem(item.qtd, item.unidade, item.preco);
+          } else {
+              todosTemPreco = false;
+          }
+      });
+      
+      const termoItem = lista.length === 1 ? 'item' : 'itens';
+      const countPad = String(lista.length).padStart(2, '0');
+      const carrinhos = '🛒🛒🛒🛒🛒🛒🛒'; 
+
+      texto += `\n_*Carrinho: ${countPad} ${termoItem}*_\n`;
+
+      if (todosTemPreco && valorTotalGeral > 0) {
+          texto += `_*Valor Estimado: € ${valorTotalGeral.toFixed(2)}*_\n`;
+      }
+
+      texto += `_${carrinhos}_\n_-----------------------_\n`;
+      texto += `${nomeResp}...\n`;
+      texto += `_...Boas compras!🛍_\n`;
+      texto += `Deby: 323.519.288\n`;
+      texto += `_-----------------------_\n`;
+      texto += `\`${cod}\`\n_*================*_\n`;
+      texto += `\n🔗 http://www.blococarvalho.unaux.com/lista_de_compras/prancheta.html`;
+
+      // 3. Verifica se houve alteração na lista de itens
+      if (idListaEmEdicao !== null && snapshotListaOriginal !== null) {
+          const estadoAtual = JSON.stringify({
+              lista: lista,
+              resp: responsavelEl.value
+          });
+
+          if (estadoAtual === snapshotListaOriginal) {
+              // NÃO HOUVE MUDANÇA NOS ITENS, MAS TEMOS UM NOVO CÓDIGO (TIMESTAMP)
+              // Salva o NOVO texto no histórico (para atualizar o código)
+              salvarNoHistoricoLocal(texto, nomeResp, true);
+              
+              saida.value = texto; 
+              areaBotoesCopiar.style.display = 'flex';
+              copiarParaClipboard(texto);
+              
+              showToast("Lista revalidada (Data/Hora atualizada)!", "sucesso");
+              iniciarNovaLista();
+              return; 
+          }
+      }
+
+      // Fluxo Normal (Nova lista ou Edição com mudanças)
+      saida.value = texto;
+      areaBotoesCopiar.style.display = 'flex'; 
+
+      copiarParaClipboard(texto);
+
+      if(salvarHistorico) {
+          salvarNoHistoricoLocal(texto, nomeResp, false);
+          showToast('Lista Gerada e Copiada!', 'sucesso');
+          iniciarNovaLista(); 
+      }
+    }
+
+    function copiarParaClipboard(texto) {
+        if (navigator.clipboard) {
+            navigator.clipboard.writeText(texto).then(() => {
+            }).catch(() => {
+                const ta = document.createElement('textarea');
+                ta.value = texto; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+            });
+        } else {
+            const ta = document.createElement('textarea');
+            ta.value = texto; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+        }
+    }
+
+    btnCopiarMain.addEventListener('click', () => {
+        if(saida.value) {
+            copiarParaClipboard(saida.value);
+            showToast('Copiado novamente!', 'sucesso');
+        } else showToast('Gere uma lista primeiro!', 'erro');
+    });
+
+    btnGerarLink.addEventListener('click', () => {
+        if(!saida.value) { showToast('Gere uma lista primeiro!', 'erro'); return; }
+        
+        copiarParaClipboard(saida.value);
+        showToast('Copiado! Cole no grupo da família.', 'sucesso');
+        
+        setTimeout(() => {
+            window.open("https://chat.whatsapp.com/GODcvt8p5kTGsqFrmNTP6s", "_blank");
+        }, 1000);
+    });
+
+    function gerarCodigoAssinatura() {
+      const d = new Date();
+      const pad = (n, len=2) => String(n).padStart(len, '0');
+      return `${pad(d.getDate())}${pad(d.getMonth() + 1)}${pad(d.getFullYear() % 100)}.${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}.${pad(Math.floor(d.getMilliseconds()/10), 3)}`; 
+    }
+
+    // --- NOVA LÓGICA: INICIAR NOVA LISTA ---
+    btnNovaLista.addEventListener('click', () => {
+        if (lista.length > 0) {
+            tipoConfirmacao = 'nova_lista';
+            tituloConfirmacao.textContent = '✨ Começar Nova Lista?';
+            textoConfirmacao.textContent = 'Isso limpará todos os itens atuais. Tem certeza?';
+            modalConfirmacao.classList.add('open');
+        } else {
+            iniciarNovaLista();
+            showToast("Lista limpa!", "sucesso");
+        }
+    });
+
+    function iniciarNovaLista() {
+        lista = []; editIndex = -1; idListaEmEdicao = null; snapshotListaOriginal = null;
+        responsavelEl.value = "";
+        quantidadeEl.value = ""; unidadeEl.value = ""; itemNomeEl.value = ""; precoItemEl.value = "";
+        saida.value = ""; areaBotoesCopiar.style.display = 'none';
+        renderLista(); atualizarFluxo();
+    }
+    // ---------------------------------------
+
+    btnFecharApp.addEventListener('click', () => {
+        const temDadosNaoSalvos = lista.length > 0 || itemNomeEl.value.trim() !== "" || quantidadeEl.value !== "";
+
+        if (temDadosNaoSalvos) {
+            tipoConfirmacao = 'fechar_app';
+            tituloConfirmacao.textContent = '⚠️ Fechar e Perder Dados?';
+            textoConfirmacao.textContent = 'Você tem itens não salvos ou em edição. Se fechar agora, tudo será perdido.';
+            modalConfirmacao.classList.add('open');
+        } else {
+            fecharAplicacao();
+        }
+    });
+
+    btnReabrirApp.addEventListener('click', () => {
+        appClosedScreen.style.display = 'none';
+        appContainer.style.display = 'block';
+    });
+
+    function fecharAplicacao() {
+        iniciarNovaLista();
+        appContainer.style.display = 'none';
+        appClosedScreen.style.display = 'block';
+    }
+
+    // ===== LÓGICA DE TIMER (IMPORTAR) =====
+    function resetarTimerImport() {
+        if(importTimer) clearTimeout(importTimer);
+        if(timerBarIntervalImport) clearInterval(timerBarIntervalImport);
+
+        timerBarImport.style.width = '100%';
+        let width = 100;
+        const totalTime = 21000; // AUMENTADO PARA 21s
+        const stepTime = 100;
+
+        timerBarIntervalImport = setInterval(() => {
+            width -= (stepTime / totalTime) * 100;
+            timerBarImport.style.width = width + '%';
+            if (width <= 0) clearInterval(timerBarIntervalImport);
+        }, stepTime);
+
+        importTimer = setTimeout(() => {
+            modalImportBackdrop.classList.remove('open');
+            showToast("Fechado por inatividade.", "erro");
+            pararTimerImport();
+        }, totalTime); 
+    }
+
+    function iniciarTimerImport() {
+        resetarTimerImport();
+        window.addEventListener('mousemove', resetarTimerImport);
+        window.addEventListener('click', resetarTimerImport);
+        window.addEventListener('touchstart', resetarTimerImport);
+    }
+
+    function pararTimerImport() {
+        if(importTimer) clearTimeout(importTimer);
+        if(timerBarIntervalImport) clearInterval(timerBarIntervalImport);
+        window.removeEventListener('mousemove', resetarTimerImport);
+        window.removeEventListener('click', resetarTimerImport);
+        window.removeEventListener('touchstart', resetarTimerImport);
+    }
+
+    btnImportar.addEventListener('click', () => {
+        importArea.value = "";
+        modalImportBackdrop.classList.add('open');
+        importArea.focus();
+        iniciarTimerImport();
+    });
+
+    modalImportClose.addEventListener('click', () => {
+        pararTimerImport();
+        modalImportBackdrop.classList.remove('open');
+    });
+    
+    // ===== LÓGICA DE TIMER (HISTÓRICO) =====
+    function resetarTimerHistorico() {
+        if(historicoTimer) clearTimeout(historicoTimer);
+        if(timerBarIntervalHistorico) clearInterval(timerBarIntervalHistorico);
+
+        timerBarHistorico.style.width = '100%';
+        let width = 100;
+        const totalTime = 21000; // AUMENTADO PARA 21s
+        const stepTime = 100;
+
+        timerBarIntervalHistorico = setInterval(() => {
+            width -= (stepTime / totalTime) * 100;
+            timerBarHistorico.style.width = width + '%';
+            if (width <= 0) clearInterval(timerBarIntervalHistorico);
+        }, stepTime);
+
+        historicoTimer = setTimeout(() => {
+            modalBackdrop.classList.remove('open');
+            showToast("Histórico fechado por inatividade.", "erro");
+            pararTimerHistorico();
+        }, totalTime); 
+    }
+
+    function iniciarTimerHistorico() {
+        resetarTimerHistorico();
+        window.addEventListener('mousemove', resetarTimerHistorico);
+        window.addEventListener('click', resetarTimerHistorico);
+        window.addEventListener('touchstart', resetarTimerHistorico);
+    }
+
+    function pararTimerHistorico() {
+        if(historicoTimer) clearTimeout(historicoTimer);
+        if(timerBarIntervalHistorico) clearInterval(timerBarIntervalHistorico);
+        window.removeEventListener('mousemove', resetarTimerHistorico);
+        window.removeEventListener('click', resetarTimerHistorico);
+        window.removeEventListener('touchstart', resetarTimerHistorico);
+    }
+
+    window.addEventListener('click', (e) => { 
+        if (e.target === modalImportBackdrop) {
+            pararTimerImport();
+            modalImportBackdrop.classList.remove('open');
+        }
+        if (e.target === modalBackdrop) {
+            pararTimerHistorico();
+            modalBackdrop.classList.remove('open');
+        }
+        if (e.target === modalSugestoesBackdrop) {
+            modalSugestoesBackdrop.classList.remove('open');
+        }
+    });
+
+    // ===== LÓGICA GERENCIAR SUGESTÕES =====
+    btnGerenciarSugestoes.addEventListener('click', () => {
+        renderizarModalSugestoes();
+        modalSugestoesBackdrop.classList.add('open');
+    });
+
+    modalSugestoesClose.addEventListener('click', () => {
+        modalSugestoesBackdrop.classList.remove('open');
+    });
+
+    function renderizarModalSugestoes() {
+        let customItems = JSON.parse(localStorage.getItem(KEY_CUSTOM_ITEMS)) || [];
+        customItems.sort((a, b) => a.localeCompare(b));
+
+        listaItensPersonalizados.innerHTML = '';
+        
+        if (customItems.length === 0) {
+            listaItensPersonalizados.innerHTML = '<li style="color:#94a3b8; text-align:center;">Nenhum item personalizado salvo.</li>';
+            return;
+        }
+
+        customItems.forEach(item => {
+            const li = document.createElement('li');
+            li.className = 'item-personalizado';
+            
+            const span = document.createElement('span');
+            span.textContent = item;
+            
+            const actionsDiv = document.createElement('div');
+            actionsDiv.className = 'actions-personalizado';
+
+            const btnEdit = document.createElement('button');
+            btnEdit.className = 'btn-edit-item';
+            btnEdit.innerHTML = '✏️';
+            btnEdit.onclick = () => editarItemAprendido(item);
+
+            const btnTrash = document.createElement('button');
+            btnTrash.className = 'btn-trash-item';
+            btnTrash.innerHTML = '🗑️';
+            btnTrash.onclick = () => removerItemAprendido(item);
+
+            actionsDiv.appendChild(btnEdit);
+            actionsDiv.appendChild(btnTrash);
+
+            li.appendChild(span);
+            li.appendChild(actionsDiv);
+            listaItensPersonalizados.appendChild(li);
+        });
+    }
+
+    // IMPORTAÇÃO
+    btnProcessarImportacao.addEventListener('click', () => {
+        pararTimerImport();
+        const texto = importArea.value;
+        if(!texto.trim()) { 
+            showToast("Cole algo primeiro!", "erro"); 
+            iniciarTimerImport();
+            return; 
+        }
+        
+        const linhas = texto.split('\n');
+        const novaLista = [];
+        const regexItem = /\*\s+(\d+)\s+(\S+)\s+(.+)/;
+        let relatorioErros = []; 
+
+        let nomeResp = "";
+        
+        for (let linha of linhas) {
+            linha = linha.trim();
+            if (linha.endsWith('...') && !linha.startsWith('_') && !linha.includes('Boas compras')) {
+                nomeResp = linha.replace('...', '').trim();
+                break;
+            }
+        }
+
+        const findValueByText = (text, dataArr) => {
+            const found = dataArr.find(d => d.texto.toLowerCase() === text.toLowerCase());
+            return found ? found.valor : "";
+        };
+
+        let respValor = findValueByText(nomeResp, dadosResponsavel);
+
+        if (nomeResp && !respValor) {
+            relatorioErros.push(`- Responsável desconhecido: ${nomeResp}`);
+        }
+
+        for (let i = 0; i < linhas.length; i++) {
+            const linha = linhas[i];
+            const match = linha.match(regexItem);
+            
+            if(match) {
+                const qtd = match[1];
+                const unidade = match[2]; 
+                let nomeBruto = match[3].trim();
+                const nome = capitalizarNome(nomeBruto);
+
+                if (!unidadesValidas.includes(unidade)) {
+                    relatorioErros.push(`- Unidade inválida "${unidade}" em "${nome}"`);
+                } else {
+                    novaLista.push({ qtd, unidade, nome, preco: 0 });
+                    aprenderNovoProduto(nome); 
+                }
+            }
+        }
+
+        if (relatorioErros.length > 0) {
+            const msgFinal = "ERROS ENCONTRADOS:\n" + relatorioErros.join("\n");
+            showToast(msgFinal, "erro");
+            iniciarTimerImport(); 
+            return; 
+        }
+
+        if(novaLista.length === 0) {
+            showToast("Nenhum item válido!", "erro");
+            iniciarTimerImport(); 
+            return;
+        }
+
+        lista = novaLista;
+        responsavelEl.value = respValor || dadosResponsavel[0].valor; 
+        
+        gerarListaFinal(true); 
+        modalImportBackdrop.classList.remove('open');
+        abrirModalHistorico(); 
+    });
+
+    function carregarHistorico() { try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; } catch { return []; } }
+    
+    function salvarNoHistoricoLocal(textoFinal, resp, apenasAtualizarTimestamp = false) {
+      let hist = carregarHistorico();
+      
+      // Se for apenas revalidação de lista existente
+      if (apenasAtualizarTimestamp && idListaEmEdicao !== null && hist[idListaEmEdicao]) {
+          let itemExistente = hist[idListaEmEdicao];
+          itemExistente.dataLegivel = new Date().toLocaleString('pt-BR') + " (Verificado)";
+          // ATUALIZA O TEXTO COM O NOVO CÓDIGO/VERSÃO
+          itemExistente.texto = textoFinal;
+          hist[idListaEmEdicao] = itemExistente;
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(hist));
+          return;
+      }
+
+      const novoItem = { 
+          dataLegivel: new Date().toLocaleString('pt-BR'), 
+          texto: textoFinal, 
+          listaBackup: JSON.parse(JSON.stringify(lista)), 
+          respValor: responsavelEl.value, 
+          favorito: false 
+      };
+
+      if (idListaEmEdicao !== null && hist[idListaEmEdicao]) {
+          novoItem.favorito = hist[idListaEmEdicao].favorito;
+          novoItem.dataLegivel = new Date().toLocaleString('pt-BR') + " (Editada)";
+          hist[idListaEmEdicao] = novoItem;
+      } else {
+          hist.unshift(novoItem);
+      }
+
+      while (hist.length > 10) {
+         let indexToRemove = -1;
+         for(let i = hist.length - 1; i >= 0; i--) {
+             if(!hist[i].favorito) {
+                 indexToRemove = i;
+                 break;
+             }
+         }
+         if(indexToRemove !== -1) hist.splice(indexToRemove, 1);
+         else break; 
+      }
+
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(hist));
+    }
+
+    function alternarFavorito(index) {
+        let hist = carregarHistorico();
+        const item = hist[index];
+        const totalFavoritos = hist.filter(h => h.favorito).length;
+
+        if (!item.favorito) {
+            if (totalFavoritos >= 3) {
+                showToast("Somente 3 Listas poderão ser favoritadas.", "aviso");
+                return;
+            }
+            item.favorito = true;
+        } else {
+            item.favorito = false;
+        }
+
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(hist));
+        abrirModalHistorico(); 
+    }
+
+    function solicitarExclusao(index) {
+        indexParaExcluir = index;
+        tipoConfirmacao = 'excluir_hist';
+        tituloConfirmacao.textContent = '🗑️ Excluir esta lista?';
+        textoConfirmacao.textContent = 'Essa ação não pode ser desfeita.';
+        modalConfirmacao.classList.add('open');
+    }
+
+    btnConfirmarNao.addEventListener('click', () => {
+        modalConfirmacao.classList.remove('open');
+        indexParaExcluir = -1;
+        tipoConfirmacao = '';
+    });
+
+    btnConfirmarSim.addEventListener('click', () => {
+        if (tipoConfirmacao === 'fechar_app') {
+            fecharAplicacao();
+            modalConfirmacao.classList.remove('open');
+        } else if (tipoConfirmacao === 'excluir_hist' && indexParaExcluir !== -1) {
+            executarExclusao(indexParaExcluir);
+            modalConfirmacao.classList.remove('open');
+        } else if (tipoConfirmacao === 'excluir_item' && indexParaExcluir !== -1) {
+            removerItem(indexParaExcluir);
+            modalConfirmacao.classList.remove('open');
+        } else if (tipoConfirmacao === 'nova_lista') {
+            iniciarNovaLista();
+            modalConfirmacao.classList.remove('open');
+            showToast("Lista limpa!", "sucesso");
+        }
+    });
+
+    function executarExclusao(index) {
+        let hist = carregarHistorico();
+        hist.splice(index, 1);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(hist));
+        abrirModalHistorico(); 
+        showToast('Lista excluída.', 'erro');
+    }
+    
+    function abrirModalHistorico() {
+      let hist = carregarHistorico();
+      const histComIndex = hist.map((item, index) => ({...item, originalIndex: index}));
+      
+      histComIndex.sort((a, b) => {
+          if (a.favorito && !b.favorito) return -1;
+          if (!a.favorito && b.favorito) return 1;
+          return 0; 
+      });
+
+      historicoConteudo.innerHTML = hist.length === 0 ? 'Sem histórico recente.' : '';
+      
+      histComIndex.forEach((h) => {
+        const idx = h.originalIndex; 
+        
+        const block = document.createElement('div'); 
+        block.className = `historico-item ${h.favorito ? 'favorito' : ''}`;
+        
+        const header = document.createElement('div');
+        header.className = 'historico-top-bar';
+        
+        const btnStar = document.createElement('button');
+        btnStar.className = `btn-star ${h.favorito ? 'ativo' : ''}`;
+        btnStar.innerHTML = '⭐';
+        btnStar.onclick = () => alternarFavorito(idx);
+
+        const dataSpan = document.createElement('span');
+        dataSpan.textContent = h.dataLegivel;
+        
+        const btnTrash = document.createElement('button');
+        btnTrash.className = `btn-trash`;
+        btnTrash.innerHTML = '🗑️'; 
+        btnTrash.onclick = () => solicitarExclusao(idx);
+        
+        header.appendChild(dataSpan);
+        header.appendChild(btnStar);
+        header.appendChild(btnTrash);
+
+        const pre = document.createElement('pre'); pre.textContent = h.texto;
+        
+        const actions = document.createElement('div');
+        actions.className = 'historico-actions';
+
+        const btnLink = document.createElement('button');
+        btnLink.className = 'btn-link-zap';
+        btnLink.innerHTML = '🔗 ENVIAR PARA GRUPO';
+        btnLink.onclick = () => {
+             if(h.texto) {
+                 copiarParaClipboard(h.texto);
+                 showToast("Copiado! Cole no grupo da família.", "sucesso");
+                 setTimeout(() => {
+                    window.open("https://chat.whatsapp.com/GODcvt8p5kTGsqFrmNTP6s", "_blank");
+                 }, 1000);
+             } else {
+                 showToast("Erro: Lista vazia.", "erro");
+             }
+        };
+
+        const btnRes = document.createElement('button'); 
+        btnRes.className = 'btn-alterar-roxo'; 
+        btnRes.textContent = 'ALTERAR ESTA LISTA';
+        btnRes.onclick = () => { 
+            if(h.listaBackup) { 
+                lista = JSON.parse(JSON.stringify(h.listaBackup)); 
+                responsavelEl.value = h.respValor || ""; 
+                idListaEmEdicao = idx; 
+                
+                snapshotListaOriginal = JSON.stringify({
+                    lista: lista,
+                    resp: responsavelEl.value
+                });
+                
+                renderLista(); 
+                atualizarFluxo(); 
+                modalBackdrop.classList.remove('open'); 
+                pararTimerHistorico();
+                showToast('Lista carregada para edição!', 'sucesso'); 
+            } 
+        };
+        
+        const btnCop = document.createElement('button'); 
+        btnCop.className = 'btn-copiar-laranja'; 
+        btnCop.textContent = 'COPIAR LISTA';
+        btnCop.onclick = () => {
+            copiarParaClipboard(h.texto);
+            showToast("Lista do Histórico copiada!", "sucesso"); 
+        };
+
+        actions.appendChild(btnLink);
+        actions.appendChild(btnRes);
+        actions.appendChild(btnCop);
+
+        block.appendChild(header); block.appendChild(pre); block.appendChild(actions); 
+        historicoConteudo.appendChild(block);
+      });
+      modalBackdrop.classList.add('open');
+      iniciarTimerHistorico();
+    }
+    
+    btnHistorico.addEventListener('click', abrirModalHistorico);
+    modalClose.addEventListener('click', () => {
+        pararTimerHistorico();
+        modalBackdrop.classList.remove('open');
+    });
+
+    inicializarBancoDeProdutos();
+    atualizarFluxo();
+  
+</script>
+</body>
+</html><script></script></body></html>
