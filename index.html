@@ -1,1548 +1,797 @@
-<!DOCTYPE html><html><head><meta charset="UTF-8"><style></style></head><body><!DOCTYPE html>
-<html>
+<!DOCTYPE html>
+<html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <title>Lista de Compras V44.1 - RealTime</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Prancheta de Auditoria V6.6 (Smart Cat)</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.4.4/lz-string.min.js"></script>
+    <style>
+        /* ================= CSS BASE ================= */
+        :root {
+            --bg-dark: #0f172a;
+            --card-dark: #1e293b;
+            --text-light: #e2e8f0;
+            --text-muted: #94a3b8;
+            --primary: #22c55e;
+            --danger: #ef4444;
+            --accent: #38bdf8;
+            --resolved-bg: #111827;
+            --extra-item: #f59e0b;
+        }
 
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background: #0f172a;
-      color: #e5e7eb;
-      padding: 20px;
-    }
-    h1 {
-      text-align: center;
-      margin-bottom: 15px;
-      font-size: 22px;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      gap: 10px;
-    }
-    
-    /* Indicador de Status Online/Offline */
-    .status-dot {
-        width: 12px; height: 12px; border-radius: 50%; background: #64748b; display: inline-block;
-        box-shadow: 0 0 5px rgba(0,0,0,0.5); transition: background 0.3s, box-shadow 0.3s;
-    }
-    .status-dot.online { background: #22c55e; box-shadow: 0 0 10px #22c55e; }
-    .status-dot.offline { background: #ef4444; box-shadow: 0 0 8px #ef4444; }
+        * { box-sizing: border-box; margin: 0; padding: 0; outline: none; font-family: 'Segoe UI', sans-serif; }
 
-    .app {
-      max-width: 650px;
-      margin: 0 auto;
-      background: #020617;
-      border-radius: 10px;
-      padding: 18px;
-      box-shadow: 0 0 15px rgba(0,0,0,0.6);
-      position: relative;
-      transition: opacity 0.3s ease;
-    }
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-light);
+            padding: 15px;
+            padding-bottom: 180px;
+            min-height: 100vh;
+        }
 
-    /* === BOTÃO FECHAR APP === */
-    .btn-fechar-app {
-        position: absolute;
-        top: -10px;
-        right: -10px;
-        width: 30px;
-        height: 30px;
-        background: #ef4444;
-        color: white;
-        border: 2px solid #0f172a;
-        border-radius: 50%;
-        font-weight: bold;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.5);
-        z-index: 100;
-        transition: transform 0.2s, background 0.2s;
-    }
-    .btn-fechar-app:hover { background: #dc2626; transform: scale(1.1); }
+        /* HEADER E STATS */
+        header { text-align: center; margin-bottom: 20px; }
+        h1 { font-size: 1.4rem; display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 5px; }
+        .sub-header { color: var(--text-muted); font-size: 0.85rem; margin-bottom: 15px; }
+        
+        .db-status { font-size: 0.7rem; margin-top: -10px; margin-bottom: 15px; font-weight: bold; opacity: 0.7; }
+        .db-online { color: #22c55e; }
+        .db-offline { color: #f59e0b; }
 
-    .app-closed-screen {
-        display: none;
-        text-align: center;
-        margin-top: 50px;
-        animation: fadeIn 0.5s;
-    }
-    .btn-reabrir {
-        background: #22c55e;
-        color: #052e16;
-        padding: 15px 30px;
-        border: none;
-        border-radius: 50px;
-        font-size: 18px;
-        font-weight: bold;
-        cursor: pointer;
-        box-shadow: 0 0 20px rgba(34, 197, 94, 0.4);
-        transition: transform 0.2s;
-    }
-    .btn-reabrir:hover { transform: scale(1.05); }
+        .stats-bar {
+            display: flex; justify-content: space-around; background: #334155;
+            border-radius: 12px; padding: 10px; font-size: 0.9rem; font-weight: bold;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+        }
+        .stat-item { text-align: center; }
+        .stat-val { display: block; font-size: 1.1rem; color: #fff; }
+        .stat-label { font-size: 0.7rem; color: #cbd5e1; text-transform: uppercase; }
 
-    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        /* CARDS */
+        .card {
+            background-color: var(--card-dark);
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 15px;
+            transition: all 0.3s ease;
+            position: relative;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+        
+        .card.resolvido {
+            opacity: 0.6;
+            background-color: var(--resolved-bg);
+            border-color: #334155 !important;
+            transform: scale(0.98);
+            filter: grayscale(0.8);
+        }
 
-    /* Inputs e Labels */
-    label { font-size: 12px; display: block; margin-bottom: 4px; color: #94a3b8; }
-    input, select, textarea { width: 100%; padding: 8px 10px; border-radius: 6px; border: none; margin-bottom: 10px; font-size: 14px; height: 36px; }
-    select { background: #e5e7eb; color: #0f172a; cursor: pointer; }
-    input { background: #fff; color: #0f172a; }
-    
-    option:disabled { background-color: #cbd5e1; color: #94a3b8; text-decoration: line-through; font-style: italic; }
-    input:disabled, select:disabled { background: #334155; color: #94a3b8; cursor: not-allowed; }
+        .card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
+        .item-info { display: flex; flex-direction: column; }
+        .item-cat { font-size: 0.65rem; text-transform: uppercase; font-weight: 800; margin-bottom: 2px; letter-spacing: 0.5px; opacity: 0.9; }
+        .item-name { font-size: 1.1rem; font-weight: bold; color: #fff; }
+        
+        .badge-pediu {
+            background: rgba(255,255,255,0.1); color: #cbd5e1; padding: 4px 8px;
+            border-radius: 6px; font-size: 0.8rem; font-weight: 600; white-space: nowrap;
+        }
+        .badge-extra {
+            background: var(--extra-item); color: #451a03; padding: 4px 8px;
+            border-radius: 6px; font-size: 0.7rem; font-weight: 800; white-space: nowrap; text-transform: uppercase;
+        }
 
-    /* GRID: Qtd, Un, Item, Valor */
-    .linha { 
-        display: grid; 
-        grid-template-columns: 60px 70px 1fr 90px; 
-        gap: 8px; 
-        margin-bottom: 10px; 
-        align-items: end; 
-    }
-    @media (max-width: 400px) {
-        .linha { grid-template-columns: 50px 60px 1fr 80px; gap: 5px; }
-    }
+        /* CONTROLES DO CARD */
+        .card-controls { display: flex; gap: 8px; align-items: stretch; margin-bottom: 15px; }
 
-    button { border: none; padding: 9px 14px; border-radius: 6px; font-size: 14px; font-weight: bold; cursor: pointer; transition: all 0.2s; }
-    .btn-add { background: #22c55e; color: #022c22; width: 100%; margin-bottom: 15px; opacity: 1; }
-    .btn-add:disabled { opacity: 0.5; cursor: not-allowed; background: #14532d; color: #4ade80;}
-    .btn-add.editando { background: #eab308; color: #422006; } 
-    
-    .btn-gerar { 
-        background: #38bdf8; 
-        color: #0f172a; 
-        width: 100%; 
-        margin-top: 5px; 
-        text-transform: uppercase; 
-        font-weight: 800; 
-    }
-    .btn-gerar:disabled { opacity: 0.5; cursor: not-allowed; background: #0c4a6e; color: #7dd3fc; }
-    .btn-gerar:hover:not(:disabled) { background: #0ea5e9; transform: translateY(-1px); }
+        .toggle-btn {
+            flex: 1.5; padding: 12px; border-radius: 8px; border: 1px solid transparent;
+            font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px;
+            font-size: 0.9rem; transition: background 0.2s;
+        }
+        .toggle-btn.active { background-color: rgba(34, 197, 94, 0.2); color: var(--primary); border-color: var(--primary); }
+        .toggle-btn.inactive { background-color: rgba(239, 68, 68, 0.2); color: var(--danger); border-color: var(--danger); }
 
-    /* BOTOES EXTRAS AGORA EM GRADE 2x2 */
-    .botoes-extras { 
-        display: grid; 
-        grid-template-columns: 1fr 1fr; /* 2 colunas */
-        gap: 8px; 
-        margin-top: 8px; 
-    }
-    
-    .btn-historico { background: #f97316; color: #0f172a; width: 100%; font-size: 13px; }
-    .btn-importar { background: #8b5cf6; color: #fff; width: 100%; font-size: 13px; }
-    .btn-importar:hover { background: #7c3aed; }
-    
-    .btn-gerenciar { background: #6366f1; color: white; width: 100%; font-size: 13px; }
-    .btn-gerenciar:hover { background: #4f46e5; }
+        .done-btn {
+            flex: 1; border-radius: 8px; border: 1px solid #64748b; background: var(--bg-dark);
+            color: #94a3b8; font-size: 0.8rem; font-weight: bold; cursor: pointer; transition: all 0.2s;
+            display: flex; align-items: center; justify-content: center; gap: 5px; text-transform: uppercase;
+        }
+        .done-btn:hover { background: #334155; color: white; }
+        
+        .done-btn.is-done { 
+            background: var(--primary); color: #064e3b; border-color: var(--primary); 
+            box-shadow: 0 0 10px rgba(34,197,94,0.3);
+        }
 
-    /* NOVO BOTÃO NOVA LISTA (Ciano Escuro) */
-    .btn-nova-lista { background: #06b6d4; color: #083344; width: 100%; font-size: 13px; }
-    .btn-nova-lista:hover { background: #22d3ee; }
-    
-    .btn-remover { background: #ef4444; color: #fee2e2; font-size: 12px; padding: 4px 10px; margin-left: 10px; }
+        /* INPUTS AREA */
+        .audit-inputs {
+            display: grid; grid-template-columns: 1fr 0.8fr 1fr; gap: 8px;
+            padding-top: 10px; border-top: 1px dashed rgba(255,255,255,0.1);
+        }
+        .audit-inputs.hidden { display: none; }
 
-    /* BOTÃO LARANJA (COPIAR) */
-    .btn-copiar-laranja { 
-        background: #fd7e14; 
-        color: #000; 
-        font-weight: 900; 
-        text-transform: uppercase; 
-        border-radius: 20px; 
-        padding: 8px 10px; 
-        font-size: 11px; 
-        box-shadow: 0 2px 5px rgba(0,0,0,0.5); 
-        border: 1px solid #e8590c; 
-        cursor: pointer; 
-        transition: transform 0.2s; 
-    }
-    .btn-copiar-laranja:hover { background: #ff922b; transform: scale(1.05); }
+        .input-group { display: flex; flex-direction: column; }
+        .input-group label { font-size: 0.65rem; color: var(--text-muted); display: block; margin-bottom: 3px; font-weight: bold; }
+        input, select {
+            background: #0f172a; border: 1px solid #475569; color: white;
+            padding: 8px; border-radius: 6px; font-size: 0.95rem; text-align: center; width: 100%;
+        }
+        input:focus, select:focus { border-color: var(--accent); }
 
-    /* BOTÃO LINK ZAP (VERDE) */
-    .btn-link-zap { 
-        background: #25D366; 
-        color: #052e16; 
-        font-weight: 900; 
-        text-transform: uppercase; 
-        border-radius: 20px; 
-        padding: 8px 10px; 
-        font-size: 11px; 
-        box-shadow: 0 2px 5px rgba(0,0,0,0.5); 
-        border: 1px solid #14532d; 
-        cursor: pointer; 
-        transition: transform 0.2s;
-    }
-    .btn-link-zap:hover { background: #4ade80; transform: scale(1.05); }
+        .calc-preview {
+            font-size: 0.7rem; color: #4ade80; text-align: center; margin-top: 2px; font-weight: bold;
+        }
 
-    /* BOTÃO ALTERAR (ROXO) */
-    .btn-alterar-roxo {
-        background: #a855f7; 
-        color: #fff;
-        font-weight: 900;
-        text-transform: uppercase; 
-        border-radius: 20px; 
-        padding: 8px 10px;
-        font-size: 11px;
-        border: 1px solid #7e22ce;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.5);
-        cursor: pointer;
-        transition: transform 0.2s;
-    }
-    .btn-alterar-roxo:hover { background: #c084fc; transform: scale(1.05); }
+        /* ÁREA DE BOTÕES FLUTUANTES */
+        .fab-area {
+            position: fixed; bottom: 20px; left: 0; width: 100%;
+            display: flex; flex-direction: column; align-items: center; gap: 10px;
+            z-index: 100; pointer-events: none;
+        }
 
-    .btn-trash { background: #ef4444; color: #ffffff; font-size: 16px; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; border: 1px solid #b91c1c; transition: transform 0.2s, background 0.2s; box-shadow: 0 2px 5px rgba(0,0,0,0.3); }
-    .btn-trash:hover { transform: scale(1.1); background: #dc2626; }
+        /* Botão Feedback (Verde) */
+        .btn-feedback {
+            pointer-events: auto;
+            width: 90%; max-width: 500px; background: linear-gradient(135deg, #22c55e, #16a34a); color: white;
+            padding: 14px; border: none; border-radius: 50px; font-size: 1rem; font-weight: 800;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.4); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px;
+        }
+        .btn-feedback:active { transform: scale(0.96); }
 
-    ul { list-style: none; margin-top: 5px; }
-    li { display: flex; justify-content: space-between; align-items: center; background: #020617; border: 1px solid #1f2937; padding: 8px 10px; border-radius: 6px; font-size: 14px; margin-bottom: 4px; cursor: pointer; transition: border-color 0.2s; }
-    li:hover { border-color: #38bdf8; }
-    .item-texto { flex-grow: 1; display: flex; flex-direction: column; }
-    .item-detalhe-preco { font-size: 11px; color: #4ade80; margin-top: 2px; }
+        /* Botão Link (Azul) */
+        .btn-link {
+            pointer-events: auto;
+            width: 90%; max-width: 500px; background: linear-gradient(135deg, #3b82f6, #2563eb); color: white;
+            padding: 14px; border: none; border-radius: 50px; font-size: 1rem; font-weight: 800;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.4); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px;
+        }
+        .btn-link:active { transform: scale(0.96); }
 
-    .resumo { margin-top: 10px; font-size: 13px; color: #a5b4fc; display: flex; justify-content: space-between; font-weight: bold; }
-    
-    .output-wrapper { position: relative; margin-top: 12px; }
-    
-    .area-botoes-copiar { 
-        display: none; 
-        justify-content: flex-end; 
-        gap: 10px; 
-        margin-bottom: 8px; 
-    }
-    
-    textarea#saida { width: 100%; height: 320px; resize: vertical; font-family: monospace; white-space: pre; background: #fff; color: #000; border: 2px solid #38bdf8; }
+        /* Botão Add Extra (Flutuante na direita) */
+        .btn-add-extra {
+            pointer-events: auto;
+            position: absolute; bottom: 130px; right: 20px;
+            width: 56px; height: 56px; border-radius: 50%;
+            background: linear-gradient(135deg, #f59e0b, #d97706); color: white;
+            border: none; font-size: 28px; display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 4px 15px rgba(245, 158, 11, 0.4); cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .btn-add-extra:hover { transform: scale(1.1); }
 
-    .msg-copiado { font-size: 12px; color: #4ade80; margin-top: 4px; display: none; }
+        /* MODAL DE ADD ITEM */
+        .modal-overlay {
+            display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85);
+            z-index: 2000; justify-content: center; align-items: center; backdrop-filter: blur(4px);
+        }
+        .modal-overlay.open { display: flex; animation: fadeIn 0.3s; }
+        
+        .modal-content {
+            background: #1e293b; padding: 25px; border-radius: 16px; width: 90%; max-width: 400px;
+            border: 1px solid #475569; display: flex; flex-direction: column; gap: 15px;
+        }
+        .modal-title { font-size: 1.2rem; font-weight: bold; color: white; margin-bottom: 5px; text-align: center; }
+        
+        .modal-actions { display: flex; gap: 10px; margin-top: 10px; }
+        .btn-cancel { background: transparent; border: 1px solid #64748b; color: #cbd5e1; flex: 1; padding: 12px; border-radius: 8px; font-weight: bold; }
+        .btn-confirm { background: #f59e0b; color: #451a03; flex: 1; padding: 12px; border-radius: 8px; font-weight: bold; border: none; }
 
-    .toast-container { position: fixed; bottom: 20px; right: 20px; z-index: 9999; }
-    .toast { 
-        background: linear-gradient(135deg,#f97316,#ec4899); 
-        color: #fff; 
-        padding: 12px 16px; 
-        margin-top: 8px; 
-        border-radius: 8px; 
-        font-size: 13px; 
-        box-shadow: 0 4px 15px rgba(0,0,0,0.4); 
-        animation: slideIn 0.4s ease-out, fadeOut 0.4s ease-in 6s forwards; 
-        white-space: pre-line; 
-        max-width: 320px;
-        line-height: 1.4;
-    }
-    .toast.erro { background: linear-gradient(135deg,#ef4444,#b91c1c); border-left: 5px solid #7f1d1d; }
-    .toast.sucesso { background: linear-gradient(135deg,#22c55e,#15803d); }
-    .toast.aviso { 
-        background: linear-gradient(135deg, #8b5cf6, #f472b6);
-        border-left: 5px solid #fff;
-        font-weight: bold;
-        box-shadow: 0 0 20px rgba(139, 92, 246, 0.5);
-    }
-    .toast.info { background: linear-gradient(135deg, #3b82f6, #2563eb); }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
-    @keyframes slideIn { from { transform: translateX(120%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
-    @keyframes fadeOut { from { opacity: 1; } to { opacity: 0; transform: translateX(120%); } }
+        /* --- CSS DOS BALÕES ANIMADOS --- */
+        .custom-alert-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 9999;
+            pointer-events: none;
+        }
 
-    .modal-backdrop { display: none; position: fixed; inset: 0; background: rgba(15,23,42,0.85); z-index: 999; justify-content: center; align-items: center; }
-    .modal-backdrop.open { display: flex; }
-    .modal { background: #020617; border-radius: 10px; max-width: 700px; width: 90%; max-height: 80vh; overflow-y: auto; padding: 16px; box-shadow: 0 0 20px rgba(0,0,0,0.7); position: relative; }
-    .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-    .modal-close { cursor: pointer; font-size: 22px; padding: 2px 8px; border-radius: 999px; background: #1e293b; }
-    
-    .historico-item { 
-        border: 1px solid #1f2937; border-radius: 8px; padding: 10px; margin-bottom: 10px; background: #020617; font-size: 13px; transition: border-color 0.3s;
-    }
-    .historico-item.favorito { border: 2px solid #eab308; background: #1e1b0c; }
+        .balloon {
+            background: linear-gradient(135deg, #6e8efb, #a777e3);
+            color: white;
+            padding: 15px 25px;
+            border-radius: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            font-family: 'Segoe UI', sans-serif;
+            font-weight: bold;
+            font-size: 0.95rem;
+            opacity: 0;
+            transform: translateY(20px) scale(0.8);
+            animation: popIn 0.5s cubic-bezier(0.68, -0.55, 0.27, 1.55) forwards,
+                       float 3s ease-in-out infinite;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
 
-    .historico-top-bar { display: flex; justify-content: flex-start; align-items: center; gap: 15px; margin-bottom: 5px; border-bottom: 1px dashed #334155; padding-bottom: 5px; }
-    
-    .historico-actions { 
-        display: grid; 
-        grid-template-columns: 1fr 1fr 1fr; 
-        gap: 5px; 
-        margin-top: 10px; 
-    }
-    .historico-actions button { width: 100%; }
+        .balloon.error { background: linear-gradient(135deg, #ff9966, #ff5e62); }
+        .balloon.success { background: linear-gradient(135deg, #56ab2f, #a8e063); }
+        .balloon.warning { background: linear-gradient(135deg, #fce38a, #f38181); color: #451a03; }
 
-    .btn-star {
-        background: transparent; border: none; font-size: 20px; cursor: pointer; transition: transform 0.2s; filter: grayscale(100%); padding: 0 5px;
-    }
-    .btn-star:hover { transform: scale(1.2); }
-    .btn-star.ativo { filter: grayscale(0%); text-shadow: 0 0 10px gold; transform: scale(1.1); }
+        @keyframes popIn {
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+        }
+        @keyframes popOut {
+            to { opacity: 0; transform: translateY(-20px) scale(0.8); }
+        }
 
-    .timer-bar-container { width: 100%; height: 4px; background: #1e293b; border-radius: 2px; margin-bottom: 10px; overflow: hidden; }
-    .timer-bar { height: 100%; background: #f472b6; width: 100%; transition: width linear; }
-
-    #importArea { width: 100%; height: 200px; background: #fff; color: #000; font-family: monospace; border-radius: 6px; padding: 10px; margin-bottom: 10px; border: 2px solid #8b5cf6;}
-    .btn-processar { background: #8b5cf6; color: white; width: 100%; padding: 12px; font-size: 16px; }
-
-    #listaItensPersonalizados { list-style: none; margin-top: 10px; }
-    .item-personalizado { display: flex; justify-content: space-between; align-items: center; background: #1e293b; padding: 10px; border-radius: 6px; margin-bottom: 5px; border: 1px solid #334155;}
-    .item-personalizado span { color: #e5e7eb; }
-    
-    /* Área de botões no item personalizado */
-    .actions-personalizado { display: flex; gap: 10px; }
-
-    .btn-edit-item { background: transparent; border: none; color: #facc15; cursor: pointer; font-size: 16px; transition: transform 0.2s; }
-    .btn-edit-item:hover { transform: scale(1.2); color: #fbbf24; }
-
-    .btn-trash-item { background: transparent; border: none; color: #ef4444; cursor: pointer; font-size: 18px; }
-    .btn-trash-item:hover { color: #dc2626; transform: scale(1.2); }
-
-    .modal-confirm-backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 10000; justify-content: center; align-items: center; }
-    .modal-confirm-backdrop.open { display: flex; }
-    .modal-confirm { background: linear-gradient(135deg, #b91c1c, #ef4444); color: white; padding: 20px; border-radius: 15px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.5); width: 300px; animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
-    .modal-confirm h3 { margin-bottom: 15px; font-size: 18px; }
-    .confirm-actions { display: flex; justify-content: center; gap: 15px; }
-    .btn-sim { background: white; color: #b91c1c; border: none; padding: 8px 20px; border-radius: 20px; font-weight: bold; cursor: pointer; transition: transform 0.2s;}
-    .btn-sim:hover { transform: scale(1.1); }
-    .btn-nao { background: rgba(0,0,0,0.3); color: white; border: 1px solid rgba(255,255,255,0.5); padding: 8px 20px; border-radius: 20px; font-weight: bold; cursor: pointer; transition: background 0.2s; }
-    .btn-nao:hover { background: rgba(0,0,0,0.5); }
-    
-    @keyframes popIn { from { transform: scale(0.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-
-  </style>
+    </style>
 </head>
 <body>
 
-  <h1>Lista de Compras <span id="statusIndicator" class="status-dot" title="Verificando conexão..."></span></h1>
+    <div class="custom-alert-container" id="alertContainer"></div>
 
-  <div class="app-closed-screen" id="appClosedScreen">
-      <h2 style="color: #64748b; margin-bottom: 20px;">Aplicativo Fechado</h2>
-      <button class="btn-reabrir" id="btnReabrirApp">Abrir Lista de Compras</button>
-  </div>
-
-  <div class="app" id="appContainer">
-    <button class="btn-fechar-app" id="btnFecharApp" title="Fechar App">✕</button>
-
-    <label for="responsavel">Responsável *</label>
-    <select id="responsavel"> 
-      <option value="">Selecione...</option>
-    </select>
-
-    <div class="linha">
-      <div>
-        <label for="quantidade">Qtd</label>
-        <input type="number" id="quantidade" min="1" placeholder="..." disabled="">
-      </div>
-      <div>
-        <label for="unidade">Un</label>
-        <select id="unidade" disabled="">
-          <option value="">...</option>
-          <option value="un">un</option>
-          <option value="kg">kg</option>
-          <option value="g">g</option>
-          <option value="L">L</option>
-          <option value="ml">ml</option>
-          <option value="cx">cx</option>
-          <option value="pct">pct</option>
-          <option value="Lt">Lt</option>
-          <option value="Bdj">Bdj</option>
-        </select>
-      </div>
-      <div>
-        <label for="itemNome">Item</label>
-        <input type="text" id="itemNome" list="sugestoes-produtos" placeholder="Buscar..." disabled="">
-        <datalist id="sugestoes-produtos"></datalist>
-      </div>
-      <div>
-        <label for="precoItem">Valor: €</label>
-        <input type="tel" id="precoItem" placeholder="€ 0,00" disabled="" oninput="mascaraMoeda(this)">
-      </div>
-    </div>
-    
-    <button class="btn-add" id="btnAdd" disabled="">Adicionar item</button>
-
-    <ul id="lista"></ul>
-    
-    <div class="resumo" id="resumoContainer">
-      <span>Itens: 0</span>
-      </div>
-
-    <button class="btn-gerar" id="btnGerar" disabled="">ENVIAR LISTA PARA WHATSAPP</button>
-    
-    <div class="botoes-extras">
-        <button class="btn-historico" id="btnHistorico">Histórico</button>
-        <button class="btn-gerenciar" id="btnGerenciarSugestoes">⚙️ Itens Salvos</button>
-        <button class="btn-importar" id="btnImportar">📥 Importar Lista</button>
-        <button class="btn-nova-lista" id="btnNovaLista">✨ Nova Lista</button>
-    </div>
-    
-    <div class="msg-copiado" id="msgCopiado">Texto copiado!</div>
-
-    <div class="output-wrapper">
-        <div class="area-botoes-copiar" id="areaBotoesCopiar">
-            <button id="btnGerarLink" class="btn-link-zap">🔗 ENVIAR LISTA PARA GRUPO</button>
-            <button id="btnCopiarMain" class="btn-copiar-laranja">COPIAR LISTA</button>
-        </div>
+    <header>
+        <h1>📋 Prancheta Digital</h1>
+        <div class="sub-header" id="infoResponsavel">Carregando...</div>
+        <div class="db-status" id="dbStatus">Conectando ao banco de dados...</div>
         
-        <textarea id="saida" readonly="" placeholder="O texto formatado aparecerá aqui."></textarea>
+        <div class="stats-bar">
+            <div class="stat-item">
+                <span class="stat-val" id="statTotal">0</span>
+                <span class="stat-label">Total</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-val" id="statPendentes" style="color:var(--accent)">0</span>
+                <span class="stat-label">Pendentes</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-val" id="statValor">€ 0.00</span>
+                <span class="stat-label">Valor Gasto</span>
+            </div>
+        </div>
+    </header>
+
+    <div id="listaCardsContainer"></div>
+
+    <div class="fab-area">
+        <button class="btn-add-extra" onclick="abrirModalExtra()" title="Adicionar Item Extra">➕</button>
+        <button class="btn-link" onclick="gerarLinkSnapshot()">🔗 SALVAR LINK</button>
+        <button class="btn-feedback" onclick="gerarFeedback()">🚀 ENVIAR FEEDBACK</button>
     </div>
-  </div>
 
-  <div class="toast-container" id="toastContainer"></div>
+    <div class="modal-overlay" id="modalExtra">
+        <div class="modal-content">
+            <div class="modal-title">Adicionar Item Extra</div>
+            
+            <div>
+                <label>Nome do Produto</label>
+                <input type="text" id="extraNome" placeholder="Ex: Chocolate..." style="text-align: left;">
+            </div>
 
-  <div class="modal-backdrop" id="modalBackdrop">
-    <div class="modal">
-      <div class="modal-header">
-        <h2>Histórico</h2>
-        <span class="modal-close" id="modalClose">×</span>
-      </div>
-      <div class="timer-bar-container">
-         <div class="timer-bar" id="timerBarHistorico"></div>
-      </div>
-      <p style="font-size:11px; color:#ef4444; margin-bottom:10px;">Fechamento automático por segurança.</p>
-      <div id="historicoConteudo"></div>
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                <div>
+                    <label>Qtd</label>
+                    <input type="number" id="extraQtd" placeholder="1">
+                </div>
+                <div>
+                    <label>Unidade</label>
+                    <select id="extraUn">
+                        <option value="un">un</option>
+                        <option value="kg">kg</option>
+                        <option value="g">g</option>
+                        <option value="L">L</option>
+                        <option value="ml">ml</option>
+                        <option value="cx">cx</option>
+                        <option value="pct">pct</option>
+                        <option value="Lta">Lta</option>
+                        <option value="bdj">bdj</option>
+                    </select>
+                </div>
+            </div>
+
+            <div>
+                <label>Preço UNITÁRIO (€)</label>
+                <input type="number" id="extraPreco" placeholder="Preço da etiqueta">
+                <div style="font-size:11px; color:#94a3b8; margin-top:4px;">* O sistema calculará o total.</div>
+            </div>
+
+            <div class="modal-actions">
+                <button class="btn-cancel" onclick="fecharModalExtra()">Cancelar</button>
+                <button class="btn-confirm" onclick="confirmarItemExtra()">Adicionar</button>
+            </div>
+        </div>
     </div>
-  </div>
-
-  <div class="modal-backdrop" id="modalSugestoesBackdrop">
-    <div class="modal">
-      <div class="modal-header">
-        <h2>Itens Aprendidos</h2>
-        <span class="modal-close" id="modalSugestoesClose">×</span>
-      </div>
-      <p style="font-size:13px; color:#a5b4fc; margin-bottom:10px;">
-        Aqui estão os itens novos que você adicionou (Ordem Alfabética).
-      </p>
-      <div id="listaSugestoesContainer" style="max-height:300px; overflow-y:auto;">
-          <ul id="listaItensPersonalizados"></ul>
-      </div>
-    </div>
-  </div>
-
-  <div class="modal-backdrop" id="modalImportBackdrop">
-    <div class="modal">
-      <div class="modal-header">
-        <h2>Importar do WhatsApp</h2>
-        <span class="modal-close" id="modalImportClose">×</span>
-      </div>
-      <p style="margin-bottom: 5px; font-size: 13px; color: #a5b4fc;">Cole a lista completa.</p>
-      <div class="timer-bar-container">
-         <div class="timer-bar" id="timerBarImport"></div>
-      </div>
-      <p style="font-size:11px; color:#ef4444; margin-bottom:10px;">Fechamento automático se não houver atividade.</p>
-      <textarea id="importArea" placeholder="Cole aqui..."></textarea>
-      <button class="btn-processar" id="btnProcessarImportacao">PROCESSAR E SALVAR NO HISTÓRICO</button>
-    </div>
-  </div>
-
-  <div class="modal-confirm-backdrop" id="modalConfirmacao">
-      <div class="modal-confirm">
-          <h3 id="tituloConfirmacao">🗑️ Excluir esta lista?</h3>
-          <p id="textoConfirmacao" style="margin-bottom:20px; font-size:14px; opacity:0.9;">Essa ação não pode ser desfeita.</p>
-          <div class="confirm-actions">
-              <button class="btn-nao" id="btnConfirmarNao">Não</button>
-              <button class="btn-sim" id="btnConfirmarSim">Sim, prosseguir</button>
-          </div>
-      </div>
-  </div>
 
 <script>
-    // URL PARA SINCRONIZAÇÃO
-    const URL_SERVIDOR_JSON = 'produtos.json'; 
+    // --- 1. CONFIGURAÇÃO E DADOS ---
+    const params = new URLSearchParams(window.location.search);
+    const rawData = params.get('d');
+    const responsavel = params.get('r') || 'Desconhecido';
+    const unidadesValidas = ["un", "kg", "g", "L", "ml", "cx", "pct", "Lta", "bdj"];
 
+    // Prioridade base
     let CATEGORY_ORDER = [
         "Padaria & Pastelaria", "Hortofrutícola", "Carnes & Peixes Frescos", "Congelados", "Laticínios & Frios",
         "Mercearia Seca & Enlatados", "Especiarias & Condimentos", "Bebidas", "Casa & Utilidades", "Limpeza Doméstica",
-        "Farmácia / Saúde", "Higiene Pessoal", "Higiene Infantil", "Pet Shop"
+        "Farmácia / Saúde", "Higiene Pessoal", "Higiene Infantil", "Pet Shop", "Vegetariano", "Outros"
     ];
 
-    const BANCO_DADOS_INICIAL = {
-        "Padaria & Pastelaria": ["Pão de Forma", "Pão Francês", "Pão de Queijo", "Bolo", "Torrada", "Bisnaguinha"],
-        "Hortofrutícola": ["Banana", "Maçã", "Uva", "Batata", "Cebola", "Tomate", "Alface", "Cenoura", "Alho", "Limão"],
-        "Carnes & Peixes Frescos": ["Carne Moída", "Frango", "Peito de Frango", "Bife", "Peixe", "Ovos", "Linguiça"],
-        "Congelados": ["Pizza", "Hambúrguer", "Lasanha", "Batata Frita", "Sorvete"],
-        "Laticínios & Frios": ["Leite", "Queijo", "Presunto", "Manteiga", "Requeijão", "Iogurte", "Leite Condensado", "Creme de Leite"],
-        "Mercearia Seca & Enlatados": ["Arroz", "Feijão", "Macarrão", "Açúcar", "Café", "Óleo", "Azeite", "Milho", "Ervilha", "Molho de Tomate", "Farinha de Trigo", "Biscoito"],
-        "Especiarias & Condimentos": ["Sal", "Pimenta", "Orégano", "Maionese", "Ketchup", "Mostarda"],
-        "Bebidas": ["Água", "Suco", "Refrigerante", "Cerveja", "Vinho"],
-        "Casa & Utilidades": ["Papel Higiênico", "Papel Toalha", "Guardanapo", "Saco de Lixo"],
-        "Limpeza Doméstica": ["Detergente", "Sabão em Pó", "Amaciante", "Água Sanitária", "Desinfetante", "Esponja"],
-        "Farmácia / Saúde": ["Algodão", "Curativo", "Álcool", "Vitamina"],
-        "Higiene Pessoal": ["Sabonete", "Shampoo", "Condicionador", "Pasta de Dente", "Escova de Dente", "Desodorante"],
-        "Higiene Infantil": ["Fralda", "Lenço Umedecido", "Pomada"],
-        "Pet Shop": ["Ração", "Petisco", "Areia de Gato"]
+    const CATEGORY_COLORS = {
+        "Padaria & Pastelaria": "#f59e0b",
+        "Hortofrutícola": "#65a30d",
+        "Carnes & Peixes Frescos": "#ef4444",
+        "Congelados": "#06b6d4",
+        "Laticínios & Frios": "#fcd34d",
+        "Mercearia Seca & Enlatados": "#8b5cf6",
+        "Especiarias & Condimentos": "#d97706",
+        "Bebidas": "#3b82f6",
+        "Casa & Utilidades": "#64748b",
+        "Limpeza Doméstica": "#14b8a6",
+        "Farmácia / Saúde": "#ec4899",
+        "Higiene Pessoal": "#f43f5e",
+        "Higiene Infantil": "#a855f7",
+        "Pet Shop": "#78350f"
+    };
+    const DEFAULT_COLOR = "#94a3b8";
+
+    // BACKUP DE SEGURANÇA (Caso falhe o download)
+    let DB_ITENS = {
+      "Padaria & Pastelaria": ["Bolo de arroz", "Bolo-rei", "Broa", "Croissant", "Donuts", "Madalena", "Pão brasileiro", "Pão de centeio", "Pão de deus", "Pão de forma", "Pão de ló", "Pão de mistura", "Pão integral", "Pão pita", "Queques", "Torta de laranja", "Pão", "Bolo", "Salgados"],
+      "Hortofrutícola": ["Abacate", "Abóbora", "Abobrinha", "Agrião", "Alface", "Alho", "Ananás", "Banana", "Batata", "Batata-doce", "Berinjela", "Beterraba", "Cebola", "Cebola roxa", "Cenoura", "Coco", "Couve portuguesa", "Espinafres", "Figo", "Kiwi", "Laranja", "Maçã", "Melancia", "Melão", "Morango", "Nabo", "Pepino", "Pêra", "Pimento verde", "Pimento vermelho", "Romã", "Rúcula", "Tangerina", "Tomate", "Tomate cherry", "Uva", "Couve", "Pimento", "Fruta", "Limão"],
+      "Carnes & Peixes Frescos": ["Asas de frango", "Bife de vaca", "Carne picada", "Chouriço", "Linguiça", "Peito de frango", "Perna de frango", "Salsichas", "Carne", "Frango", "Peixe", "Bacalhau"],
+      "Congelados": ["Batata frita congelada", "Camarão congelado", "Croquetes", "Empadas congeladas", "Ervilhas congeladas", "Esparguete à bolonhesa congelado", "Espinafres congelados", "Frango inteiro", "Gelado", "Gelado de chocolate", "Gelado de frutas", "Gelado de iogurte", "Hambúrgueres", "Lasanha grande", "Lasanha pequena", "Legumes congelados", "Massa folhada congelada", "Nuggets de frango", "Pão de alho congelado", "Pasteis de bacalhau congelados", "Peixe congelado", "Pizza congelada", "Rissóis congelados", "Pizza", "Nuggets", "Batata frita"],
+      "Laticínios & Frios": ["Fiambre", "Iogurte aromatizado", "Iogurte grego", "Iogurte natural", "Leite gordo", "Leite magro", "Leite meio gordo", "Leite sem lactose", "Manteiga com sal", "Manteiga sem sal", "Margarina", "Natas para bater", "Ovos brancos", "Ovos castanhos", "Presunto", "Queijo creme", "Queijo edam", "Queijo flamengo", "Queijo fresco", "Queijo mozzarella", "Queijo parmesão", "Requeijão", "Salame", "Salpicão", "Leite", "Iogurte", "Queijo", "Manteiga", "Natas", "Ovos", "Bacon"],
+      "Mercearia Seca & Enlatados": ["Achocolatado em pó", "Açúcar amarelo", "Açúcar branco", "Açúcar mascavado", "Adoçante", "Amido de milho", "Anchovas", "Arroz", "Atum em lata", "Azeite virgem extra", "Azeitonas", "Batata palha", "Bicarbonato de sódio", "Bolachas água e sal", "Bolachas de manteiga", "Bolachas Maria", "Bolachas recheadas", "Cacau em pó", "Café em pó", "Café molido", "Café solúvel", "Cappuccino pronto", "Cápsulas de café", "Cavala em lata", "Cereais de pequeno-almoço", "Chá a granel", "Chá em saqueta", "Chocolate em pó", "Cogumelos em lata", "Compota", "Concentrado de tomate", "Creme de leite", "Cubos de caldo de carne", "Cubos de caldo de legumes", "Cuscuz", "Doce de morango", "Doce de ovos", "Ervilhas em lata", "Farinha de milho", "Farinha de trigo com fermento", "Farinha de trigo S/ fermento", "Feijão", "Feijão em lata", "Feijão frade", "Feijão frade em lata", "Fermento em pó", "Flocos de aveia", "Fubá", "Granola", "Grão-de-bico", "Ketchup", "Leite condensado", "Leite de coco", "Leite em pó", "Lentilhas", "Maionese", "Massa cotovelos", "Massa espiral", "Massa penne", "Mel", "Milho em lata", "Molho de soja", "Molho inglês", "Molho tártaro", "Mostarda", "Nhoque", "Óleo de girassol", "Óleo de soja", "Patê de atum", "Patê de fígado", "Picles", "Pimentos em conserva", "Polpa de tomate", "Polvilho doce", "Puré de batata", "Puré de tomate", "Quinoa", "Sardinha em lata", "Sementes de chia", "Sementes de linhaça", "Tempero em pó", "Tomate pelado", "Torradas", "Vinagre de vinho", "Massa", "Esparguete", "Farinha", "Açúcar", "Óleo", "Azeite", "Vinagre", "Molho", "Bolacha", "Cereal", "Café", "Chá"],
+      "Especiarias & Condimentos": ["Açafrão", "Azeite com ervas", "Canela em pó", "Coentros secos", "Colorau S/ pimenta", "Cominhos", "Cravinho", "Gengibre em pó", "Louro", "Manteiga de amendoim", "Noz-moscada", "Orégãos", "Páprica em pó", "Pasta de sésamo", "Pimenta preta", "Piripiri", "Sal grosso", "Sal refinado", "Vinagre", "Vinagre balsâmico", "Vinagre de maçã", "Pimenta", "Sal", "Canela", "Colorau"],
+      "Bebidas": ["Água de coco", "Água mineral com gás", "Água mineral sem gás", "Água tónica", "Aguardente", "Bebida vegetal", "Cerveja artesanal", "Cerveja lager", "Cerveja pilsen", "Energético", "Espumante", "Licor", "Néctar de pêssego", "Refrigerante de cola", "Refrigerante de laranja", "Refrigerante de limão", "Sumo de ananás", "Sumo de laranja", "Sumo de limão", "Sumo de maçã", "Vinho branco", "Vinho do Porto", "Vinho tinto", "Vodka", "Whisky", "Água", "Sumo", "Refrigerante", "Coca-cola", "Cerveja", "Vinho"],
+      "Casa & Utilidades": ["Esponjas de cozinha", "Filme aderente", "Fita adesiva", "Fósforos", "Papel alumínio", "Pilhas AA", "Pilhas AAA", "Sacos do lixo", "Sacos para congelação", "Velas", "Filme", "Pilha"],
+      "Limpeza Doméstica": ["Água lixívia", "Amaciador da roupa", "Amaciador para máquina", "Aromatizante ambiente", "Desinfetante multiusos", "Detergente da loiça", "Detergente da roupa", "Detergente para máquina de lavar", "Esponja de aço", "Esponja dupla face", "Limpa-vidros", "Luvas de limpeza", "Panos de microfibra", "Pastilhas para lava-loiça", "Removedor de calcário", "Sabão em pó", "Sabão líquido para as mãos", "Sabonete em barra", "Saco para aspirador", "Tira-graxa", "Vassoura", "Detergente", "Lixívia", "Sabão", "Esponja", "Limpa", "Desinfetante", "Saco lixo", "Pano"],
+      "Farmácia / Saúde": ["Álcool etílico", "Algodão", "Anti-histamínico", "Comprimidos para azia", "Creme hidratante corporal", "Creme para pés", "Desinfetante para mãos", "Ibuprofeno", "Multivitamínicos", "Paracetamol", "Pensos rápidos", "Protetor solar", "Termómetro digital", "Vitamina C", "Xarope para tosse"],
+      "Higiene Pessoal": ["Absorventes higiénicos", "Cotonetes", "Creme de barbear", "Creme facial", "Creme pós-barba", "Cuidado íntimo feminino", "Desmaquilhante", "Desodorizante em spray", "Desodorizante roll-on", "Discos de desmaquilhar", "Elásticos de cabelo", "Escova de cabelo", "Escova de dentes", "Espuma de barbear", "Fio dentário", "Gel de banho", "Lâminas de barbear", "Pasta de dentes", "Pente", "Protetor labial", "Sabonete líquido", "Tampões", "Toalhitas húmidas", "Sabonete", "Shampoo", "Creme", "Desodorizante", "Pasta dentes", "Escova", "Papel higiénico", "Gel de banho"],
+      "Higiene Infantil": ["Creme hidratante infantil", "Fraldas", "Lenços humedecidos", "Pomada para assaduras", "Sabonete líquido infantil"],
+      "Pet Shop": ["Ração para cães", "Ração para gatos", "Ração", "Areia"]
     };
 
-    const unidadesValidas = ["un", "kg", "g", "L", "ml", "cx", "pct", "Lta", "bdj"];
+    let listaItens = [];
 
-    const dadosResponsavel = [
-        { texto: "Victor", valor: "victor" },
-        { texto: "Vic", valor: "vic" },
-        { texto: "Deby", valor: "debora" }, 
-        { texto: "Papito", valor: "papito" }
-    ];
+    // --- 2. FUNÇÕES DE SUPORTE (NOVA LÓGICA DE CATEGORIA) ---
+    function descobrirCategoria(nome) {
+        const nomeNorm = nome.toLowerCase();
+        let melhorCategoria = "Outros";
+        let maiorTamanhoMatch = 0;
 
-    let listaSugestoesMestra = [];
-    let bancoDadosCategorizado = {}; 
-    const KEY_CUSTOM_ITEMS = 'meus_produtos_extras_v1';
-    const KEY_PRECOS_MEMORIA = 'meus_precos_v1';
-    const KEY_DB_CACHE = 'meu_banco_dados_cache_v2'; 
-    
-    let importTimer = null;
-    let timerBarIntervalImport = null;
-    let historicoTimer = null;
-    let timerBarIntervalHistorico = null;
-
-    // --- LÓGICA DE MONITORAMENTO ONLINE/OFFLINE EM TEMPO REAL ---
-    function atualizarStatusVisual(online) {
-        const statusDot = document.getElementById('statusIndicator');
-        if (online) {
-            statusDot.className = "status-dot online";
-            statusDot.title = "Online e Atualizado";
-            // Tenta sincronizar se voltou a ficar online
-            inicializarBancoDeProdutos(); 
-        } else {
-            statusDot.className = "status-dot offline";
-            statusDot.title = "Modo Offline (Sem internet)";
+        // Itera por todas as categorias
+        for (let cat of CATEGORY_ORDER) {
+            if (DB_ITENS[cat]) {
+                // Procura cada item do banco dentro do nome do produto
+                for (let dbItem of DB_ITENS[cat]) {
+                    const dbItemNorm = dbItem.toLowerCase();
+                    
+                    // Se encontrar o item dentro do nome digitado
+                    if (nomeNorm.includes(dbItemNorm)) {
+                        // Se esse match for mais específico (palavra maior), ele ganha
+                        // Ex: "Batata Palha" (12 chars) ganha de "Batata" (6 chars)
+                        if (dbItemNorm.length > maiorTamanhoMatch) {
+                            maiorTamanhoMatch = dbItemNorm.length;
+                            melhorCategoria = cat;
+                        }
+                    }
+                }
+            }
         }
+        return melhorCategoria; 
     }
 
-    window.addEventListener('online', () => {
-        atualizarStatusVisual(true);
-        showToast("Conexão restabelecida! 🌐", "sucesso");
-    });
+    function plural(n, singular, pl) { return n === 1 ? singular : pl; }
 
-    window.addEventListener('offline', () => {
-        atualizarStatusVisual(false);
-        showToast("Você está offline! 📵", "erro");
-    });
-    // -------------------------------------------------------------
+    function calcularTotalItem(qtd, un, precoUnit) {
+        let fator = 1;
+        if (un === 'g' || un === 'ml') fator = 1000;
+        return (qtd / fator) * precoUnit;
+    }
 
-    async function inicializarBancoDeProdutos() {
-        const statusDot = document.getElementById('statusIndicator');
-        const cacheLocal = localStorage.getItem(KEY_DB_CACHE);
+    // --- 3. INICIALIZAÇÃO HÍBRIDA ---
+    window.onload = async () => {
+        document.getElementById('infoResponsavel').innerText = `Auditoria de: ${responsavel}`;
         
-        if (cacheLocal) {
-            bancoDadosCategorizado = JSON.parse(cacheLocal);
-        } else {
-            bancoDadosCategorizado = BANCO_DADOS_INICIAL;
-        }
-
-        atualizarDatalist();
-
-        // Se o navegador disser que está offline, nem tenta o fetch
-        if (!navigator.onLine) {
-            atualizarStatusVisual(false);
-            return;
-        }
-
+        // 3.1 TENTAR FETCH ONLINE IGUAL AO GESTOR
+        const statusEl = document.getElementById('dbStatus');
         try {
-            statusDot.title = "Verificando atualizações...";
-            const response = await fetch(URL_SERVIDOR_JSON + '?v=' + new Date().getTime());
-            
+            const response = await fetch('produtos.json?v=' + new Date().getTime());
             if (response.ok) {
-                const dadosServidor = await response.json();
-                if (JSON.stringify(dadosServidor) !== JSON.stringify(bancoDadosCategorizado)) {
-                    bancoDadosCategorizado = dadosServidor;
-                    localStorage.setItem(KEY_DB_CACHE, JSON.stringify(dadosServidor));
-                    atualizarDatalist(); 
-                    const chaves = Object.keys(dadosServidor);
-                    if(chaves.length > 0) CATEGORY_ORDER = chaves;
-                    showToast("Banco de produtos atualizado!", "info");
+                const serverData = await response.json();
+                if(Object.keys(serverData).length > 0) {
+                    DB_ITENS = serverData; // Atualiza a memória com o arquivo real
+                    CATEGORY_ORDER = Object.keys(serverData); // Atualiza a ordem
+                    statusEl.innerText = "Base de Dados: Atualizada (Online) 🟢";
+                    statusEl.className = "db-status db-online";
                 }
-                atualizarStatusVisual(true);
             } else {
-                throw new Error("Arquivo não encontrado");
+                throw new Error("Falha ao carregar JSON");
             }
-        } catch (error) {
-            atualizarStatusVisual(false);
+        } catch (e) {
+            console.log("Modo Offline ativado: " + e);
+            statusEl.innerText = "Base de Dados: Memória Interna (Offline) 🟠";
+            statusEl.className = "db-status db-offline";
         }
-    }
-    
-    // Checagem periódica (a cada 30 segundos) para garantir
-    setInterval(() => {
-        if(navigator.onLine) inicializarBancoDeProdutos();
-    }, 30000);
 
-    function atualizarDatalist() {
-        const baseProdutos = processarObjetoJSON(bancoDadosCategorizado);
-        const customItems = JSON.parse(localStorage.getItem(KEY_CUSTOM_ITEMS)) || [];
-        listaSugestoesMestra = [...new Set([...baseProdutos, ...customItems])].sort((a, b) => a.localeCompare(b));
-        
-        const datalistEl = document.getElementById('sugestoes-produtos');
-        datalistEl.innerHTML = listaSugestoesMestra.map(item => `<option value="${item}">`).join('');
-    }
+        // 3.2 PROCESSAR DADOS DA URL
+        if (rawData) {
+            try {
+                let dados;
+                const isCompressed = params.get('c') === '1';
 
-    function processarObjetoJSON(jsonObj) {
-        let itens = [];
-        for (const categoria in jsonObj) {
-            if (Array.isArray(jsonObj[categoria])) itens = itens.concat(jsonObj[categoria]);
+                if (isCompressed) {
+                    const decompressed = LZString.decompressFromEncodedURIComponent(rawData);
+                    if (!decompressed) throw new Error("Erro na descompressão");
+                    dados = JSON.parse(decompressed);
+                } else {
+                    dados = JSON.parse(decodeURIComponent(rawData));
+                }
+
+                if (!dados) throw new Error("Falha ao ler dados");
+
+                listaItens = dados.map((item, idx) => ({
+                    ...item,
+                    originalIndex: idx,
+                    cat: descobrirCategoria(item.n), // Agora usa a lógica nova e inteligente
+                    encontrado: (item.encontrado !== undefined) ? item.encontrado : true,
+                    resolvido: (item.resolvido !== undefined) ? item.resolvido : false,
+                    isExtra: (item.isExtra !== undefined) ? item.isExtra : false,
+                    qtdReal: (item.qtdReal !== undefined) ? item.qtdReal : item.q,
+                    unReal: (item.unReal !== undefined) ? item.unReal : item.u,
+                    precoUnitario: (item.precoUnitario !== undefined) ? item.precoUnitario : 0, 
+                    valorTotal: 0      
+                }));
+                // Recalcular totais na carga
+                listaItens.forEach(i => {
+                    i.valorTotal = calcularTotalItem(i.qtdReal, i.unReal, i.precoUnitario);
+                });
+                renderizar();
+            } catch (e) {
+                console.error(e);
+                showAlert("Erro ao processar lista (Link inválido).", "error");
+            }
         }
-        return itens;
-    }
+    };
 
-    function aprenderNovoProduto(novoItem) {
-        const existe = listaSugestoesMestra.some(p => p.toLowerCase() === novoItem.toLowerCase());
-        if (!existe) {
-            let customItems = JSON.parse(localStorage.getItem(KEY_CUSTOM_ITEMS)) || [];
-            customItems.push(novoItem);
-            localStorage.setItem(KEY_CUSTOM_ITEMS, JSON.stringify(customItems));
-            atualizarDatalist();
-        }
-    }
+    // --- 4. RENDERIZAÇÃO ---
+    function renderizar() {
+        const container = document.getElementById('listaCardsContainer');
+        container.innerHTML = '';
 
-    function removerItemAprendido(itemParaRemover) {
-        let customItems = JSON.parse(localStorage.getItem(KEY_CUSTOM_ITEMS)) || [];
-        customItems = customItems.filter(i => i !== itemParaRemover);
-        localStorage.setItem(KEY_CUSTOM_ITEMS, JSON.stringify(customItems));
-        atualizarDatalist();
-        renderizarModalSugestoes();
-        showToast(`Item "${itemParaRemover}" removido!`, "sucesso");
-    }
-    
-    function editarItemAprendido(oldName) {
-        const novoNome = prompt("Corrigir nome do item:", oldName);
-        if (novoNome && novoNome.trim() !== "" && novoNome !== oldName) {
-            const nomeFormatado = capitalizarNome(novoNome);
-            let customItems = JSON.parse(localStorage.getItem(KEY_CUSTOM_ITEMS)) || [];
+        // Stats
+        const total = listaItens.length;
+        const pendentes = listaItens.filter(i => !i.resolvido).length;
+        const valorTotalGeral = listaItens.reduce((acc, cur) => acc + (cur.valorTotal || 0), 0);
+
+        document.getElementById('statTotal').innerText = `${total} ${plural(total, 'Item', 'Itens')}`;
+        document.getElementById('statPendentes').innerText = `${pendentes} ${plural(pendentes, 'Item', 'Itens')}`;
+        document.getElementById('statValor').innerText = `€ ${valorTotalGeral.toFixed(2)}`;
+
+        // Ordenação por CATEGORY_ORDER
+        const listaOrdenada = [...listaItens].sort((a, b) => {
+            if (a.resolvido !== b.resolvido) return a.resolvido ? 1 : -1;
+            if (!a.resolvido && a.isExtra !== b.isExtra) return a.isExtra ? -1 : 1;
+
+            const idxA = CATEGORY_ORDER.indexOf(a.cat);
+            const idxB = CATEGORY_ORDER.indexOf(b.cat);
             
-            customItems = customItems.filter(i => i !== oldName);
-            if (!customItems.includes(nomeFormatado)) {
-                customItems.push(nomeFormatado);
-            }
+            const pesoA = idxA === -1 ? 999 : idxA;
+            const pesoB = idxB === -1 ? 999 : idxB;
             
-            localStorage.setItem(KEY_CUSTOM_ITEMS, JSON.stringify(customItems));
-            atualizarDatalist();
-            renderizarModalSugestoes();
-            showToast("Item atualizado!", "sucesso");
-        }
-    }
-
-    function salvarPrecoMemoria(nomeItem, preco) {
-        if (!nomeItem || preco <= 0.02) return; 
-        let memoria = JSON.parse(localStorage.getItem(KEY_PRECOS_MEMORIA)) || {};
-        memoria[nomeItem.toLowerCase()] = preco;
-        localStorage.setItem(KEY_PRECOS_MEMORIA, JSON.stringify(memoria));
-    }
-
-    function buscarPrecoMemoria(nomeItem) {
-        let memoria = JSON.parse(localStorage.getItem(KEY_PRECOS_MEMORIA)) || {};
-        return memoria[nomeItem.toLowerCase()] || 0;
-    }
-
-    function obterPrioridadeCategoria(nomeItem) {
-        for (const categoriaKey in bancoDadosCategorizado) {
-            const itensCategoria = bancoDadosCategorizado[categoriaKey].map(i => i.toLowerCase());
-            if (itensCategoria.includes(nomeItem.toLowerCase())) {
-                const index = CATEGORY_ORDER.indexOf(categoriaKey);
-                return index !== -1 ? index : 99;
-            }
-        }
-        return 99; 
-    }
-
-    function capitalizarNome(nome) {
-        if (!nome) return "";
-        const texto = nome.trim();
-        return texto.charAt(0).toUpperCase() + texto.slice(1).toLowerCase();
-    }
-
-    function mascaraMoeda(campo) {
-        let valor = campo.value.replace(/\D/g, ""); 
-        if (valor === "") { campo.value = ""; return; }
-        if (valor.length > 4) { valor = valor.slice(0, 4); }
-        valor = (parseInt(valor) / 100).toFixed(2);
-        valor = valor.replace(".", ",");
-        campo.value = "€ " + valor;
-    }
-
-    let lista = [];
-    let editIndex = -1; 
-    let idListaEmEdicao = null; 
-    let snapshotListaOriginal = null;
-
-    const MAX_HIST = 10; 
-    const STORAGE_KEY = 'listaComprasHistorico_v18';
-    let indexParaExcluir = -1; 
-    let tipoConfirmacao = ''; 
-
-    const appContainer = document.getElementById('appContainer');
-    const appClosedScreen = document.getElementById('appClosedScreen');
-    const btnReabrirApp = document.getElementById('btnReabrirApp');
-    const btnFecharApp = document.getElementById('btnFecharApp');
-    const ulLista = document.getElementById('lista');
-    const resumoContainer = document.getElementById('resumoContainer');
-    const msgCopiado = document.getElementById('msgCopiado');
-    const saida = document.getElementById('saida');
-    const btnCopiarMain = document.getElementById('btnCopiarMain');
-    const btnGerarLink = document.getElementById('btnGerarLink');
-    const areaBotoesCopiar = document.getElementById('areaBotoesCopiar');
-    
-    const responsavelEl = document.getElementById('responsavel');
-    const quantidadeEl = document.getElementById('quantidade');
-    const unidadeEl = document.getElementById('unidade');
-    const precoItemEl = document.getElementById('precoItem'); 
-    const itemNomeEl = document.getElementById('itemNome');
-    const btnAdd = document.getElementById('btnAdd');
-    const btnGerar = document.getElementById('btnGerar');
-    
-    const btnHistorico = document.getElementById('btnHistorico');
-    const btnGerenciarSugestoes = document.getElementById('btnGerenciarSugestoes');
-    const btnNovaLista = document.getElementById('btnNovaLista'); 
-    
-    const toastContainer = document.getElementById('toastContainer');
-    
-    const modalBackdrop = document.getElementById('modalBackdrop');
-    const modalClose = document.getElementById('modalClose');
-    const historicoConteudo = document.getElementById('historicoConteudo');
-    
-    const btnImportar = document.getElementById('btnImportar');
-    const modalImportBackdrop = document.getElementById('modalImportBackdrop');
-    const modalImportClose = document.getElementById('modalImportClose');
-    
-    const modalSugestoesBackdrop = document.getElementById('modalSugestoesBackdrop');
-    const modalSugestoesClose = document.getElementById('modalSugestoesClose');
-    const listaItensPersonalizados = document.getElementById('listaItensPersonalizados');
-
-    const btnProcessarImportacao = document.getElementById('btnProcessarImportacao');
-    const importArea = document.getElementById('importArea');
-    const modalConfirmacao = document.getElementById('modalConfirmacao');
-    const tituloConfirmacao = document.getElementById('tituloConfirmacao');
-    const textoConfirmacao = document.getElementById('textoConfirmacao');
-    const btnConfirmarSim = document.getElementById('btnConfirmarSim');
-    const btnConfirmarNao = document.getElementById('btnConfirmarNao');
-    
-    const timerBarImport = document.getElementById('timerBarImport');
-    const timerBarHistorico = document.getElementById('timerBarHistorico');
-
-    function popularSelect(elemento, dados) {
-        dados.forEach(item => {
-            const option = document.createElement('option');
-            option.value = item.valor; 
-            option.textContent = item.texto; 
-            elemento.appendChild(option);
+            if (pesoA !== pesoB) return pesoA - pesoB;
+            return a.n.localeCompare(b.n);
         });
-    }
 
-    popularSelect(responsavelEl, dadosResponsavel);
-
-    function atualizarFluxo() {
-      const temResponsavel = !!responsavelEl.value;
-      
-      if (!temResponsavel) {
-        quantidadeEl.disabled = true; 
-        unidadeEl.disabled = true; 
-        precoItemEl.disabled = true;
-        itemNomeEl.disabled = true; 
-        btnAdd.disabled = true;
-      } else {
-        quantidadeEl.disabled = false;
-        const qtdValida = parseInt(quantidadeEl.value) >= 1;
-        unidadeEl.disabled = !qtdValida;
-        if (!qtdValida) { 
-            unidadeEl.value = ""; 
-            precoItemEl.disabled = true;
-            itemNomeEl.disabled = true; 
-        } else { 
-            itemNomeEl.disabled = !unidadeEl.value; 
-            precoItemEl.disabled = !unidadeEl.value;
-        }
-      }
-
-      const camposItemCompletos = !quantidadeEl.disabled && quantidadeEl.value >= 1 && !unidadeEl.disabled && unidadeEl.value !== "" && !itemNomeEl.disabled && itemNomeEl.value.trim() !== "";
-      
-      btnAdd.disabled = !camposItemCompletos;
-
-      if (editIndex !== -1) { btnAdd.textContent = 'Salvar Alteração'; btnAdd.classList.add('editando'); } else { btnAdd.textContent = 'Adicionar item'; btnAdd.classList.remove('editando'); }
-
-      const listaTemItens = lista.length > 0;
-      btnGerar.disabled = !(temResponsavel && listaTemItens);
-      
-      if(idListaEmEdicao !== null) {
-          btnGerar.textContent = "SALVAR ALTERAÇÕES NA LISTA";
-          btnGerar.style.background = "#a855f7"; 
-          btnGerar.style.color = "#fff";
-      } else {
-          btnGerar.textContent = "ENVIAR LISTA PARA WHATSAPP";
-          btnGerar.style.background = "#38bdf8"; 
-          btnGerar.style.color = "#0f172a";
-      }
-    }
-
-    responsavelEl.addEventListener('change', atualizarFluxo);
-    
-    quantidadeEl.addEventListener('input', () => {
-      const val = parseInt(quantidadeEl.value);
-      if (quantidadeEl.value !== "" && (isNaN(val) || val < 1)) showToast('A quantidade mínima é 1.', 'erro');
-      atualizarFluxo();
-    });
-    unidadeEl.addEventListener('change', atualizarFluxo);
-    
-    itemNomeEl.addEventListener('input', () => {
-        atualizarFluxo();
-        const nome = itemNomeEl.value.trim();
-        if (nome.length > 2 && editIndex === -1) {
-            const precoSalvo = buscarPrecoMemoria(nome);
-            if (precoSalvo > 0) {
-                 let valStr = precoSalvo.toFixed(2).replace('.', ',');
-                 precoItemEl.value = "€ " + valStr;
-            }
-        }
-    });
-    
-    // --- CORREÇÃO: ADICIONADO LISTENER DE CHANGE PARA DATALIST ---
-    itemNomeEl.addEventListener('change', () => {
-        atualizarFluxo();
-    });
-    // -------------------------------------------------------------
-
-    function showToast(msg, tipo = 'normal') {
-      const div = document.createElement('div');
-      div.className = `toast ${tipo}`; 
-      div.textContent = msg;
-      toastContainer.appendChild(div);
-      setTimeout(() => div.remove(), 6000); 
-    }
-    
-    function calcularSubtotalItem(qtd, unidade, precoUnitario) {
-        let fatorDivisao = 1;
-        if (['g', 'ml'].includes(unidade)) {
-            fatorDivisao = 1000;
-        }
-        return (qtd / fatorDivisao) * precoUnitario;
-    }
-
-    btnAdd.addEventListener('click', () => {
-      const qtd = parseInt(quantidadeEl.value, 10);
-      const textoBruto = itemNomeEl.value.trim();
-      const nome = capitalizarNome(textoBruto);
-      const unidade = unidadeEl.value;
-      
-      let preco = 0;
-      if (precoItemEl.value) {
-          const apenasNumeros = precoItemEl.value.replace(/[^\d,]/g, '');
-          preco = parseFloat(apenasNumeros.replace(',', '.'));
-      }
-      if (isNaN(preco)) preco = 0;
-
-      aprenderNovoProduto(nome);
-      salvarPrecoMemoria(nome, preco);
-
-      const duplicado = lista.some((item, idx) => {
-        if (editIndex !== -1 && idx === editIndex) return false;
-        return item.nome.toLowerCase() === nome.toLowerCase();
-      });
-
-      if (duplicado) { showToast(`⛔ O item "${nome}" já está na lista!`, 'erro'); itemNomeEl.focus(); return; }
-
-      const novoItemObj = { qtd, nome, unidade, preco };
-
-      if (editIndex > -1) { 
-          lista[editIndex] = novoItemObj; 
-          showToast('Item atualizado com sucesso!', 'sucesso'); 
-          editIndex = -1; 
-      } else { 
-          lista.push(novoItemObj); 
-          showToast('Item adicionado!', 'sucesso'); 
-      }
-
-      renderLista();
-      quantidadeEl.value = ''; unidadeEl.value = ''; itemNomeEl.value = ''; precoItemEl.value = '';
-      atualizarFluxo(); quantidadeEl.focus();
-    });
-
-    function renderLista() {
-      ulLista.innerHTML = '';
-      let totalGeral = 0;
-      let todosTemPreco = true;
-
-      lista.forEach((item, idx) => {
-        const itemPreco = item.preco || 0;
-        
-        if (itemPreco <= 0) todosTemPreco = false;
-
-        const subtotal = calcularSubtotalItem(item.qtd, item.unidade, itemPreco);
-        totalGeral += subtotal;
-
-        const li = document.createElement('li');
-        const divTexto = document.createElement('div');
-        divTexto.className = 'item-texto';
-        
-        const spanPrincipal = document.createElement('span');
-        spanPrincipal.textContent = `${item.qtd} ${item.unidade} ${item.nome}`;
-        divTexto.appendChild(spanPrincipal);
-        
-        if (subtotal > 0) {
-            const spanPreco = document.createElement('span');
-            spanPreco.className = 'item-detalhe-preco';
-            spanPreco.textContent = `(€ ${itemPreco.toFixed(2)}/${item.unidade === 'g' ? 'kg' : item.unidade === 'ml' ? 'L' : item.unidade}) = Total: € ${subtotal.toFixed(2)}`;
-            divTexto.appendChild(spanPreco);
-        }
-
-        divTexto.onclick = () => carregarEdicao(idx); 
-
-        const btnRem = document.createElement('button');
-        btnRem.textContent = 'X'; btnRem.className = 'btn-remover';
-        btnRem.onclick = (e) => { e.stopPropagation(); solicitarExclusaoItem(idx); };
-        
-        li.appendChild(divTexto); li.appendChild(btnRem);
-        ulLista.appendChild(li);
-      });
-
-      const termo = lista.length === 1 ? 'item' : 'itens';
-      
-      let htmlResumo = `<span>Total: ${lista.length} ${termo}</span>`;
-      
-      if (todosTemPreco && lista.length > 0) {
-          htmlResumo += `<span id="totalEstimadoDisplay" style="color:#4ade80;">€ ${totalGeral.toFixed(2)}</span>`;
-      }
-
-      resumoContainer.innerHTML = htmlResumo;
-      atualizarFluxo();
-    }
-
-    function solicitarExclusaoItem(index) {
-        indexParaExcluir = index;
-        tipoConfirmacao = 'excluir_item'; 
-        const item = lista[index];
-        tituloConfirmacao.textContent = '🗑️ Remover item?';
-        textoConfirmacao.textContent = `Deseja remover "${item.nome}" da lista?`;
-        modalConfirmacao.classList.add('open');
-    }
-
-    function carregarEdicao(index) {
-      const item = lista[index];
-      editIndex = index; 
-      quantidadeEl.disabled = false; quantidadeEl.value = item.qtd;
-      unidadeEl.disabled = false; unidadeEl.value = item.unidade;
-      itemNomeEl.disabled = false; itemNomeEl.value = item.nome;
-      precoItemEl.disabled = false; 
-      
-      if (item.preco && item.preco > 0) {
-         let valStr = item.preco.toFixed(2).replace('.', ',');
-         precoItemEl.value = "€ " + valStr;
-      } else {
-         precoItemEl.value = '';
-      }
-
-      showToast(`Editando: ${item.nome}`, 'normal'); itemNomeEl.focus(); atualizarFluxo();
-    }
-
-    function removerItem(index) {
-      if (index === editIndex) { 
-          editIndex = -1; 
-          quantidadeEl.value = ''; itemNomeEl.value = ''; unidadeEl.value = ''; precoItemEl.value = '';
-      } else if (index < editIndex) { editIndex--; }
-      lista.splice(index, 1); renderLista();
-    }
-
-    btnGerar.addEventListener('click', () => {
-      try {
-          if (lista.length === 0) return;
-          gerarListaFinal(true);
-      } catch (err) {
-          console.error(err);
-          showToast('Erro ao gerar lista! Verifique o console.', 'erro');
-      }
-    });
-
-    function gerarListaFinal(salvarHistorico) {
-      const nomeResp = responsavelEl.options[responsavelEl.selectedIndex].text;
-      
-      // 1. Gera o Código de Versão AGORA (para ser o mais atual possível)
-      const cod = gerarCodigoAssinatura();
-      
-      // 2. Gera o Texto Completo COM esse código
-      let listaOrdenada = [...lista]; 
-      listaOrdenada.sort((a, b) => {
-          const prioridadeA = obterPrioridadeCategoria(a.nome);
-          const prioridadeB = obterPrioridadeCategoria(b.nome);
-          if (prioridadeA === prioridadeB) return a.nome.localeCompare(b.nome);
-          return prioridadeA - prioridadeB;
-      });
-
-      let texto = `*================*\n   *LISTA DE COMPRAS*\n*================*\n`;
-      let valorTotalGeral = 0;
-      let todosTemPreco = true;
-
-      listaOrdenada.forEach(item => { 
-          texto += `* ${item.qtd} ${item.unidade} ${item.nome}\n`; 
-          if (item.preco && item.preco > 0) {
-              valorTotalGeral += calcularSubtotalItem(item.qtd, item.unidade, item.preco);
-          } else {
-              todosTemPreco = false;
-          }
-      });
-      
-      const termoItem = lista.length === 1 ? 'item' : 'itens';
-      const countPad = String(lista.length).padStart(2, '0');
-      const carrinhos = '🛒🛒🛒🛒🛒🛒🛒'; 
-
-      texto += `\n_*Carrinho: ${countPad} ${termoItem}*_\n`;
-
-      if (todosTemPreco && valorTotalGeral > 0) {
-          texto += `_*Valor Estimado: € ${valorTotalGeral.toFixed(2)}*_\n`;
-      }
-
-      texto += `_${carrinhos}_\n_-----------------------_\n`;
-      texto += `${nomeResp}...\n`;
-      texto += `_...Boas compras!🛍_\n`;
-      texto += `Deby: 323.519.288\n`;
-      texto += `_-----------------------_\n`;
-      texto += `\`${cod}\`\n_*================*_\n`;
-      texto += `\n🔗 http://www.blococarvalho.unaux.com/lista_de_compras/prancheta.html`;
-
-      // 3. Verifica se houve alteração na lista de itens
-      if (idListaEmEdicao !== null && snapshotListaOriginal !== null) {
-          const estadoAtual = JSON.stringify({
-              lista: lista,
-              resp: responsavelEl.value
-          });
-
-          if (estadoAtual === snapshotListaOriginal) {
-              // NÃO HOUVE MUDANÇA NOS ITENS, MAS TEMOS UM NOVO CÓDIGO (TIMESTAMP)
-              // Salva o NOVO texto no histórico (para atualizar o código)
-              salvarNoHistoricoLocal(texto, nomeResp, true);
-              
-              saida.value = texto; 
-              areaBotoesCopiar.style.display = 'flex';
-              copiarParaClipboard(texto);
-              
-              showToast("Lista revalidada (Data/Hora atualizada)!", "sucesso");
-              iniciarNovaLista();
-              return; 
-          }
-      }
-
-      // Fluxo Normal (Nova lista ou Edição com mudanças)
-      saida.value = texto;
-      areaBotoesCopiar.style.display = 'flex'; 
-
-      copiarParaClipboard(texto);
-
-      if(salvarHistorico) {
-          salvarNoHistoricoLocal(texto, nomeResp, false);
-          showToast('Lista Gerada e Copiada!', 'sucesso');
-          iniciarNovaLista(); 
-      }
-    }
-
-    function copiarParaClipboard(texto) {
-        if (navigator.clipboard) {
-            navigator.clipboard.writeText(texto).then(() => {
-            }).catch(() => {
-                const ta = document.createElement('textarea');
-                ta.value = texto; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
-            });
-        } else {
-            const ta = document.createElement('textarea');
-            ta.value = texto; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
-        }
-    }
-
-    btnCopiarMain.addEventListener('click', () => {
-        if(saida.value) {
-            copiarParaClipboard(saida.value);
-            showToast('Copiado novamente!', 'sucesso');
-        } else showToast('Gere uma lista primeiro!', 'erro');
-    });
-
-    btnGerarLink.addEventListener('click', () => {
-        if(!saida.value) { showToast('Gere uma lista primeiro!', 'erro'); return; }
-        
-        copiarParaClipboard(saida.value);
-        showToast('Copiado! Cole no grupo da família.', 'sucesso');
-        
-        setTimeout(() => {
-            window.open("https://chat.whatsapp.com/GODcvt8p5kTGsqFrmNTP6s", "_blank");
-        }, 1000);
-    });
-
-    function gerarCodigoAssinatura() {
-      const d = new Date();
-      const pad = (n, len=2) => String(n).padStart(len, '0');
-      return `${pad(d.getDate())}${pad(d.getMonth() + 1)}${pad(d.getFullYear() % 100)}.${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}.${pad(Math.floor(d.getMilliseconds()/10), 3)}`; 
-    }
-
-    // --- NOVA LÓGICA: INICIAR NOVA LISTA ---
-    btnNovaLista.addEventListener('click', () => {
-        if (lista.length > 0) {
-            tipoConfirmacao = 'nova_lista';
-            tituloConfirmacao.textContent = '✨ Começar Nova Lista?';
-            textoConfirmacao.textContent = 'Isso limpará todos os itens atuais. Tem certeza?';
-            modalConfirmacao.classList.add('open');
-        } else {
-            iniciarNovaLista();
-            showToast("Lista limpa!", "sucesso");
-        }
-    });
-
-    function iniciarNovaLista() {
-        lista = []; editIndex = -1; idListaEmEdicao = null; snapshotListaOriginal = null;
-        responsavelEl.value = "";
-        quantidadeEl.value = ""; unidadeEl.value = ""; itemNomeEl.value = ""; precoItemEl.value = "";
-        saida.value = ""; areaBotoesCopiar.style.display = 'none';
-        renderLista(); atualizarFluxo();
-    }
-    // ---------------------------------------
-
-    btnFecharApp.addEventListener('click', () => {
-        const temDadosNaoSalvos = lista.length > 0 || itemNomeEl.value.trim() !== "" || quantidadeEl.value !== "";
-
-        if (temDadosNaoSalvos) {
-            tipoConfirmacao = 'fechar_app';
-            tituloConfirmacao.textContent = '⚠️ Fechar e Perder Dados?';
-            textoConfirmacao.textContent = 'Você tem itens não salvos ou em edição. Se fechar agora, tudo será perdido.';
-            modalConfirmacao.classList.add('open');
-        } else {
-            fecharAplicacao();
-        }
-    });
-
-    btnReabrirApp.addEventListener('click', () => {
-        appClosedScreen.style.display = 'none';
-        appContainer.style.display = 'block';
-    });
-
-    function fecharAplicacao() {
-        iniciarNovaLista();
-        appContainer.style.display = 'none';
-        appClosedScreen.style.display = 'block';
-    }
-
-    // ===== LÓGICA DE TIMER (IMPORTAR) =====
-    function resetarTimerImport() {
-        if(importTimer) clearTimeout(importTimer);
-        if(timerBarIntervalImport) clearInterval(timerBarIntervalImport);
-
-        timerBarImport.style.width = '100%';
-        let width = 100;
-        const totalTime = 21000; // AUMENTADO PARA 21s
-        const stepTime = 100;
-
-        timerBarIntervalImport = setInterval(() => {
-            width -= (stepTime / totalTime) * 100;
-            timerBarImport.style.width = width + '%';
-            if (width <= 0) clearInterval(timerBarIntervalImport);
-        }, stepTime);
-
-        importTimer = setTimeout(() => {
-            modalImportBackdrop.classList.remove('open');
-            showToast("Fechado por inatividade.", "erro");
-            pararTimerImport();
-        }, totalTime); 
-    }
-
-    function iniciarTimerImport() {
-        resetarTimerImport();
-        window.addEventListener('mousemove', resetarTimerImport);
-        window.addEventListener('click', resetarTimerImport);
-        window.addEventListener('touchstart', resetarTimerImport);
-    }
-
-    function pararTimerImport() {
-        if(importTimer) clearTimeout(importTimer);
-        if(timerBarIntervalImport) clearInterval(timerBarIntervalImport);
-        window.removeEventListener('mousemove', resetarTimerImport);
-        window.removeEventListener('click', resetarTimerImport);
-        window.removeEventListener('touchstart', resetarTimerImport);
-    }
-
-    btnImportar.addEventListener('click', () => {
-        importArea.value = "";
-        modalImportBackdrop.classList.add('open');
-        importArea.focus();
-        iniciarTimerImport();
-    });
-
-    modalImportClose.addEventListener('click', () => {
-        pararTimerImport();
-        modalImportBackdrop.classList.remove('open');
-    });
-    
-    // ===== LÓGICA DE TIMER (HISTÓRICO) =====
-    function resetarTimerHistorico() {
-        if(historicoTimer) clearTimeout(historicoTimer);
-        if(timerBarIntervalHistorico) clearInterval(timerBarIntervalHistorico);
-
-        timerBarHistorico.style.width = '100%';
-        let width = 100;
-        const totalTime = 21000; // AUMENTADO PARA 21s
-        const stepTime = 100;
-
-        timerBarIntervalHistorico = setInterval(() => {
-            width -= (stepTime / totalTime) * 100;
-            timerBarHistorico.style.width = width + '%';
-            if (width <= 0) clearInterval(timerBarIntervalHistorico);
-        }, stepTime);
-
-        historicoTimer = setTimeout(() => {
-            modalBackdrop.classList.remove('open');
-            showToast("Histórico fechado por inatividade.", "erro");
-            pararTimerHistorico();
-        }, totalTime); 
-    }
-
-    function iniciarTimerHistorico() {
-        resetarTimerHistorico();
-        window.addEventListener('mousemove', resetarTimerHistorico);
-        window.addEventListener('click', resetarTimerHistorico);
-        window.addEventListener('touchstart', resetarTimerHistorico);
-    }
-
-    function pararTimerHistorico() {
-        if(historicoTimer) clearTimeout(historicoTimer);
-        if(timerBarIntervalHistorico) clearInterval(timerBarIntervalHistorico);
-        window.removeEventListener('mousemove', resetarTimerHistorico);
-        window.removeEventListener('click', resetarTimerHistorico);
-        window.removeEventListener('touchstart', resetarTimerHistorico);
-    }
-
-    window.addEventListener('click', (e) => { 
-        if (e.target === modalImportBackdrop) {
-            pararTimerImport();
-            modalImportBackdrop.classList.remove('open');
-        }
-        if (e.target === modalBackdrop) {
-            pararTimerHistorico();
-            modalBackdrop.classList.remove('open');
-        }
-        if (e.target === modalSugestoesBackdrop) {
-            modalSugestoesBackdrop.classList.remove('open');
-        }
-    });
-
-    // ===== LÓGICA GERENCIAR SUGESTÕES =====
-    btnGerenciarSugestoes.addEventListener('click', () => {
-        renderizarModalSugestoes();
-        modalSugestoesBackdrop.classList.add('open');
-    });
-
-    modalSugestoesClose.addEventListener('click', () => {
-        modalSugestoesBackdrop.classList.remove('open');
-    });
-
-    function renderizarModalSugestoes() {
-        let customItems = JSON.parse(localStorage.getItem(KEY_CUSTOM_ITEMS)) || [];
-        customItems.sort((a, b) => a.localeCompare(b));
-
-        listaItensPersonalizados.innerHTML = '';
-        
-        if (customItems.length === 0) {
-            listaItensPersonalizados.innerHTML = '<li style="color:#94a3b8; text-align:center;">Nenhum item personalizado salvo.</li>';
+        if(listaOrdenada.length === 0) {
+            container.innerHTML = '<p style="text-align:center;color:#64748b;margin-top:50px">Lista vazia.</p>';
             return;
         }
 
-        customItems.forEach(item => {
-            const li = document.createElement('li');
-            li.className = 'item-personalizado';
+        listaOrdenada.forEach((item) => {
+            const realIndex = listaItens.indexOf(item); 
             
-            const span = document.createElement('span');
-            span.textContent = item;
+            let classes = 'card';
+            let badgeHtml = `<span class="badge-pediu">Pediu: ${item.q} ${item.u}</span>`;
             
-            const actionsDiv = document.createElement('div');
-            actionsDiv.className = 'actions-personalizado';
+            let catColor = CATEGORY_COLORS[item.cat] || DEFAULT_COLOR;
+            if (item.isExtra) catColor = "#f59e0b";
 
-            const btnEdit = document.createElement('button');
-            btnEdit.className = 'btn-edit-item';
-            btnEdit.innerHTML = '✏️';
-            btnEdit.onclick = () => editarItemAprendido(item);
-
-            const btnTrash = document.createElement('button');
-            btnTrash.className = 'btn-trash-item';
-            btnTrash.innerHTML = '🗑️';
-            btnTrash.onclick = () => removerItemAprendido(item);
-
-            actionsDiv.appendChild(btnEdit);
-            actionsDiv.appendChild(btnTrash);
-
-            li.appendChild(span);
-            li.appendChild(actionsDiv);
-            listaItensPersonalizados.appendChild(li);
-        });
-    }
-
-    // IMPORTAÇÃO
-    btnProcessarImportacao.addEventListener('click', () => {
-        pararTimerImport();
-        const texto = importArea.value;
-        if(!texto.trim()) { 
-            showToast("Cole algo primeiro!", "erro"); 
-            iniciarTimerImport();
-            return; 
-        }
-        
-        const linhas = texto.split('\n');
-        const novaLista = [];
-        const regexItem = /\*\s+(\d+)\s+(\S+)\s+(.+)/;
-        let relatorioErros = []; 
-
-        let nomeResp = "";
-        
-        for (let linha of linhas) {
-            linha = linha.trim();
-            if (linha.endsWith('...') && !linha.startsWith('_') && !linha.includes('Boas compras')) {
-                nomeResp = linha.replace('...', '').trim();
-                break;
-            }
-        }
-
-        const findValueByText = (text, dataArr) => {
-            const found = dataArr.find(d => d.texto.toLowerCase() === text.toLowerCase());
-            return found ? found.valor : "";
-        };
-
-        let respValor = findValueByText(nomeResp, dadosResponsavel);
-
-        if (nomeResp && !respValor) {
-            relatorioErros.push(`- Responsável desconhecido: ${nomeResp}`);
-        }
-
-        for (let i = 0; i < linhas.length; i++) {
-            const linha = linhas[i];
-            const match = linha.match(regexItem);
-            
-            if(match) {
-                const qtd = match[1];
-                const unidade = match[2]; 
-                let nomeBruto = match[3].trim();
-                const nome = capitalizarNome(nomeBruto);
-
-                if (!unidadesValidas.includes(unidade)) {
-                    relatorioErros.push(`- Unidade inválida "${unidade}" em "${nome}"`);
-                } else {
-                    novaLista.push({ qtd, unidade, nome, preco: 0 });
-                    aprenderNovoProduto(nome); 
+            if (item.resolvido) {
+                classes += ' resolvido';
+            } else {
+                if (item.isExtra) {
+                    classes += ' extra';
+                    badgeHtml = `<span class="badge-extra">⚠️ ITEM EXTRA</span>`;
                 }
             }
-        }
+            
+            const card = document.createElement('div');
+            card.className = classes;
+            
+            // APLICAÇÃO DA MOLDURA COLORIDA (Baseada na Categoria)
+            if (!item.resolvido) {
+                card.style.border = `2px solid ${catColor}`;
+                card.style.borderLeft = `10px solid ${catColor}`;
+                card.style.backgroundColor = `${catColor}10`;
+            } else {
+                card.style.border = `1px solid #334155`;
+                card.style.borderLeft = `5px solid #334155`;
+            }
 
-        if (relatorioErros.length > 0) {
-            const msgFinal = "ERROS ENCONTRADOS:\n" + relatorioErros.join("\n");
-            showToast(msgFinal, "erro");
-            iniciarTimerImport(); 
-            return; 
-        }
+            let optionsUn = unidadesValidas.map(u => 
+                `<option value="${u}" ${u === item.unReal ? 'selected' : ''}>${u}</option>`
+            ).join('');
 
-        if(novaLista.length === 0) {
-            showToast("Nenhum item válido!", "erro");
-            iniciarTimerImport(); 
+            let btnToggleLabel = item.encontrado ? '🟢 Achei' : '🔴 Não tem';
+            if (item.isExtra) btnToggleLabel = '🗑️ Remover';
+
+            const valUnitStr = item.precoUnitario > 0 ? item.precoUnitario : '';
+
+            card.innerHTML = `
+                <div class="card-header">
+                    <div class="item-info">
+                        <span class="item-cat" style="color:${item.resolvido ? '#64748b' : catColor}">${item.cat}</span>
+                        <span class="item-name">${item.n}</span>
+                    </div>
+                    ${badgeHtml}
+                </div>
+
+                <div class="card-controls">
+                    <button class="toggle-btn ${item.encontrado ? 'active' : 'inactive'}" 
+                            onclick="toggleStatus(${realIndex})">
+                        ${btnToggleLabel}
+                    </button>
+                    
+                    <button class="done-btn ${item.resolvido ? 'is-done' : ''}" 
+                            onclick="toggleResolvido(${realIndex})" title="Finalizar Item">
+                        ${item.resolvido ? '✅ Concluído' : '✔️ Concluir'}
+                    </button>
+                </div>
+
+                <div class="audit-inputs ${(!item.encontrado || item.resolvido) ? 'hidden' : ''}">
+                    <div class="input-group">
+                        <label>QTD REAL</label>
+                        <input type="number" inputmode="decimal" value="${item.qtdReal}" 
+                               onchange="atualizarDado(${realIndex}, 'qtdReal', this.value)">
+                    </div>
+                    <div class="input-group">
+                        <label>UNIDADE</label>
+                        <select onchange="atualizarDado(${realIndex}, 'unReal', this.value)">
+                            ${optionsUn}
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label>PREÇO UNIT (€)</label>
+                        <input type="number" inputmode="decimal" value="${valUnitStr}" placeholder="0.00"
+                               onchange="atualizarDado(${realIndex}, 'precoUnitario', this.value)">
+                        <div class="calc-preview">Total: € ${item.valorTotal.toFixed(2)}</div>
+                    </div>
+                </div>
+            `;
+            container.appendChild(card);
+        });
+    }
+
+    // --- 5. AÇÕES DO USUÁRIO ---
+
+    function toggleStatus(index) {
+        const item = listaItens[index];
+
+        if (item.isExtra) {
+            if(confirm("Remover este item extra da auditoria?")) {
+                listaItens.splice(index, 1);
+                showAlert("Item extra removido.", "warning");
+                renderizar();
+            }
             return;
         }
 
-        lista = novaLista;
-        responsavelEl.value = respValor || dadosResponsavel[0].valor; 
-        
-        gerarListaFinal(true); 
-        modalImportBackdrop.classList.remove('open');
-        abrirModalHistorico(); 
-    });
-
-    function carregarHistorico() { try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; } catch { return []; } }
-    
-    function salvarNoHistoricoLocal(textoFinal, resp, apenasAtualizarTimestamp = false) {
-      let hist = carregarHistorico();
-      
-      // Se for apenas revalidação de lista existente
-      if (apenasAtualizarTimestamp && idListaEmEdicao !== null && hist[idListaEmEdicao]) {
-          let itemExistente = hist[idListaEmEdicao];
-          itemExistente.dataLegivel = new Date().toLocaleString('pt-BR') + " (Verificado)";
-          // ATUALIZA O TEXTO COM O NOVO CÓDIGO/VERSÃO
-          itemExistente.texto = textoFinal;
-          hist[idListaEmEdicao] = itemExistente;
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(hist));
-          return;
-      }
-
-      const novoItem = { 
-          dataLegivel: new Date().toLocaleString('pt-BR'), 
-          texto: textoFinal, 
-          listaBackup: JSON.parse(JSON.stringify(lista)), 
-          respValor: responsavelEl.value, 
-          favorito: false 
-      };
-
-      if (idListaEmEdicao !== null && hist[idListaEmEdicao]) {
-          novoItem.favorito = hist[idListaEmEdicao].favorito;
-          novoItem.dataLegivel = new Date().toLocaleString('pt-BR') + " (Editada)";
-          hist[idListaEmEdicao] = novoItem;
-      } else {
-          hist.unshift(novoItem);
-      }
-
-      while (hist.length > 10) {
-         let indexToRemove = -1;
-         for(let i = hist.length - 1; i >= 0; i--) {
-             if(!hist[i].favorito) {
-                 indexToRemove = i;
-                 break;
-             }
-         }
-         if(indexToRemove !== -1) hist.splice(indexToRemove, 1);
-         else break; 
-      }
-
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(hist));
-    }
-
-    function alternarFavorito(index) {
-        let hist = carregarHistorico();
-        const item = hist[index];
-        const totalFavoritos = hist.filter(h => h.favorito).length;
-
-        if (!item.favorito) {
-            if (totalFavoritos >= 3) {
-                showToast("Somente 3 Listas poderão ser favoritadas.", "aviso");
-                return;
-            }
-            item.favorito = true;
+        item.encontrado = !item.encontrado;
+        if (!item.encontrado) {
+            item.resolvido = true;
+            item.precoUnitario = 0;
+            item.valorTotal = 0;
+            showAlert("Item não encontrado. Movido para o final.", "error");
         } else {
-            item.favorito = false;
+            item.resolvido = false;
+        }
+        renderizar();
+    }
+
+    function toggleResolvido(index) {
+        listaItens[index].resolvido = !listaItens[index].resolvido;
+        renderizar();
+        
+        // NOTIFICAÇÃO SOLICITADA PARA AMBOS OS ESTADOS
+        if(listaItens[index].resolvido) {
+            showAlert("Item concluído! Arrochou!", "success");
+        } else {
+            showAlert("Item reaberto. Vamos conferir de novo?", "warning");
+        }
+    }
+
+    function atualizarDado(index, campo, valor) {
+        const item = listaItens[index];
+        if (campo === 'unReal') {
+            item.unReal = valor;
+        } else {
+            item.precoUnitario = parseFloat(valor) || 0; 
+            if(campo === 'qtdReal') item.qtdReal = parseFloat(valor) || 0;
+            if(campo === 'precoUnitario') item.precoUnitario = parseFloat(valor) || 0;
+        }
+        item.valorTotal = calcularTotalItem(item.qtdReal, item.unReal, item.precoUnitario);
+        renderizar(); 
+    }
+
+    // --- 6. FUNÇÕES DO MODAL EXTRA ---
+    const modalExtra = document.getElementById('modalExtra');
+    const inpNome = document.getElementById('extraNome');
+    const inpQtd = document.getElementById('extraQtd');
+    const inpUn = document.getElementById('extraUn');
+    const inpPreco = document.getElementById('extraPreco');
+
+    function abrirModalExtra() {
+        inpNome.value = '';
+        inpQtd.value = '';
+        inpUn.value = 'un';
+        inpPreco.value = '';
+        modalExtra.classList.add('open');
+        inpNome.focus();
+    }
+
+    function fecharModalExtra() {
+        modalExtra.classList.remove('open');
+    }
+
+    function confirmarItemExtra() {
+        const nome = inpNome.value.trim();
+        const qtd = parseFloat(inpQtd.value);
+        const un = inpUn.value;
+        const precoUnit = parseFloat(inpPreco.value) || 0;
+
+        if (!nome || !qtd) {
+            showAlert("Preencha Nome e Quantidade.", "error");
+            return;
         }
 
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(hist));
-        abrirModalHistorico(); 
+        const totalCalc = calcularTotalItem(qtd, un, precoUnit);
+
+        const novoItem = {
+            n: nome,
+            q: 0,
+            u: un,
+            cat: descobrirCategoria(nome), // Usa a nova lógica também aqui
+            encontrado: true,
+            resolvido: false,
+            isExtra: true,
+            qtdReal: qtd,
+            unReal: un,
+            precoUnitario: precoUnit,
+            valorTotal: totalCalc
+        };
+
+        listaItens.push(novoItem);
+        showAlert("Item Extra Adicionado!", "warning");
+        fecharModalExtra();
+        renderizar();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
-    function solicitarExclusao(index) {
-        indexParaExcluir = index;
-        tipoConfirmacao = 'excluir_hist';
-        tituloConfirmacao.textContent = '🗑️ Excluir esta lista?';
-        textoConfirmacao.textContent = 'Essa ação não pode ser desfeita.';
-        modalConfirmacao.classList.add('open');
-    }
-
-    btnConfirmarNao.addEventListener('click', () => {
-        modalConfirmacao.classList.remove('open');
-        indexParaExcluir = -1;
-        tipoConfirmacao = '';
-    });
-
-    btnConfirmarSim.addEventListener('click', () => {
-        if (tipoConfirmacao === 'fechar_app') {
-            fecharAplicacao();
-            modalConfirmacao.classList.remove('open');
-        } else if (tipoConfirmacao === 'excluir_hist' && indexParaExcluir !== -1) {
-            executarExclusao(indexParaExcluir);
-            modalConfirmacao.classList.remove('open');
-        } else if (tipoConfirmacao === 'excluir_item' && indexParaExcluir !== -1) {
-            removerItem(indexParaExcluir);
-            modalConfirmacao.classList.remove('open');
-        } else if (tipoConfirmacao === 'nova_lista') {
-            iniciarNovaLista();
-            modalConfirmacao.classList.remove('open');
-            showToast("Lista limpa!", "sucesso");
+    // --- 7. GERAR LINK SNAPSHOT ---
+    function gerarLinkSnapshot() {
+        if (listaItens.length === 0) {
+            showAlert("A lista está vazia, meu rei!", "error");
+            return;
         }
-    });
 
-    function executarExclusao(index) {
-        let hist = carregarHistorico();
-        hist.splice(index, 1);
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(hist));
-        abrirModalHistorico(); 
-        showToast('Lista excluída.', 'erro');
+        const listaParaSalvar = listaItens.map(i => ({
+            n: i.n,
+            q: i.q,
+            u: i.u,
+            encontrado: i.encontrado,
+            resolvido: i.resolvido,
+            isExtra: i.isExtra,
+            qtdReal: i.qtdReal,
+            unReal: i.unReal,
+            precoUnitario: i.precoUnitario
+        }));
+
+        const jsonLista = JSON.stringify(listaParaSalvar);
+        const dadosComprimidos = LZString.compressToEncodedURIComponent(jsonLista);
+        
+        const urlBase = window.location.href.split('?')[0];
+        const novaURL = `${urlBase}?d=${dadosComprimidos}&r=${encodeURIComponent(responsavel)}&c=1`;
+
+        navigator.clipboard.writeText(novaURL).then(() => {
+            showAlert("Link copiado! Pode salvar onde quiser.", "success");
+        }).catch(err => {
+            console.error(err);
+            showAlert("Erro ao copiar o link.", "error");
+        });
     }
-    
-    function abrirModalHistorico() {
-      let hist = carregarHistorico();
-      const histComIndex = hist.map((item, index) => ({...item, originalIndex: index}));
-      
-      histComIndex.sort((a, b) => {
-          if (a.favorito && !b.favorito) return -1;
-          if (!a.favorito && b.favorito) return 1;
-          return 0; 
-      });
 
-      historicoConteudo.innerHTML = hist.length === 0 ? 'Sem histórico recente.' : '';
-      
-      histComIndex.forEach((h) => {
-        const idx = h.originalIndex; 
-        
-        const block = document.createElement('div'); 
-        block.className = `historico-item ${h.favorito ? 'favorito' : ''}`;
-        
-        const header = document.createElement('div');
-        header.className = 'historico-top-bar';
-        
-        const btnStar = document.createElement('button');
-        btnStar.className = `btn-star ${h.favorito ? 'ativo' : ''}`;
-        btnStar.innerHTML = '⭐';
-        btnStar.onclick = () => alternarFavorito(idx);
+    // --- 8. FEEDBACK (ZAP) ---
+    function gerarFeedback() {
+        let totalGasto = 0;
+        let divergencias = [];
+        let faltantes = [];
+        let extras = [];
+        let okCount = 0;
 
-        const dataSpan = document.createElement('span');
-        dataSpan.textContent = h.dataLegivel;
+        listaItens.forEach(item => {
+            if (item.isExtra) {
+                totalGasto += item.valorTotal;
+                extras.push(`➕ ${item.n} (${item.qtdReal} ${item.unReal} | Total: €${item.valorTotal.toFixed(2)})`);
+            }
+            else if (item.encontrado) {
+                okCount++;
+                totalGasto += item.valorTotal;
+                const qtdMudou = parseFloat(item.qtdReal) !== parseFloat(item.q);
+                const unMudou = item.unReal !== item.u;
+                if (qtdMudou || unMudou) {
+                    divergencias.push(`⚠️ ${item.n}: Era ${item.q}${item.u} ➔ Trouxe ${item.qtdReal}${item.unReal}`);
+                }
+            } else {
+                faltantes.push(`❌ ${item.n}`);
+            }
+        });
+
+        let msg = `*🛒 RELATÓRIO DE COMPRAS*\n`;
+        msg += `Auditor: ${responsavel}\n`;
+        msg += `------------------------------\n`;
+
+        if (faltantes.length > 0) {
+            msg += `*Não Encontrados (${faltantes.length}):*\n`;
+            msg += faltantes.join('\n') + `\n\n`;
+        }
         
-        const btnTrash = document.createElement('button');
-        btnTrash.className = `btn-trash`;
-        btnTrash.innerHTML = '🗑️'; 
-        btnTrash.onclick = () => solicitarExclusao(idx);
-        
-        header.appendChild(dataSpan);
-        header.appendChild(btnStar);
-        header.appendChild(btnTrash);
+        if (extras.length > 0) {
+            msg += `*🛒 Itens Extras (${extras.length}):*\n`;
+            msg += extras.join('\n') + `\n\n`;
+        }
 
-        const pre = document.createElement('pre'); pre.textContent = h.texto;
-        
-        const actions = document.createElement('div');
-        actions.className = 'historico-actions';
+        if (divergencias.length > 0) {
+            msg += `*Alterações de Qtd (${divergencias.length}):*\n`;
+            msg += divergencias.join('\n') + `\n\n`;
+        }
 
-        const btnLink = document.createElement('button');
-        btnLink.className = 'btn-link-zap';
-        btnLink.innerHTML = '🔗 ENVIAR PARA GRUPO';
-        btnLink.onclick = () => {
-             if(h.texto) {
-                 copiarParaClipboard(h.texto);
-                 showToast("Copiado! Cole no grupo da família.", "sucesso");
-                 setTimeout(() => {
-                    window.open("https://chat.whatsapp.com/GODcvt8p5kTGsqFrmNTP6s", "_blank");
-                 }, 1000);
-             } else {
-                 showToast("Erro: Lista vazia.", "erro");
-             }
-        };
+        msg += `------------------------------\n`;
+        msg += `✅ Itens Originais: ${okCount}/${listaItens.filter(i=>!i.isExtra).length}\n`;
+        msg += `💰 *Total Gasto: € ${totalGasto.toFixed(2)}*\n`;
 
-        const btnRes = document.createElement('button'); 
-        btnRes.className = 'btn-alterar-roxo'; 
-        btnRes.textContent = 'ALTERAR ESTA LISTA';
-        btnRes.onclick = () => { 
-            if(h.listaBackup) { 
-                lista = JSON.parse(JSON.stringify(h.listaBackup)); 
-                responsavelEl.value = h.respValor || ""; 
-                idListaEmEdicao = idx; 
-                
-                snapshotListaOriginal = JSON.stringify({
-                    lista: lista,
-                    resp: responsavelEl.value
-                });
-                
-                renderLista(); 
-                atualizarFluxo(); 
-                modalBackdrop.classList.remove('open'); 
-                pararTimerHistorico();
-                showToast('Lista carregada para edição!', 'sucesso'); 
-            } 
-        };
-        
-        const btnCop = document.createElement('button'); 
-        btnCop.className = 'btn-copiar-laranja'; 
-        btnCop.textContent = 'COPIAR LISTA';
-        btnCop.onclick = () => {
-            copiarParaClipboard(h.texto);
-            showToast("Lista do Histórico copiada!", "sucesso"); 
-        };
-
-        actions.appendChild(btnLink);
-        actions.appendChild(btnRes);
-        actions.appendChild(btnCop);
-
-        block.appendChild(header); block.appendChild(pre); block.appendChild(actions); 
-        historicoConteudo.appendChild(block);
-      });
-      modalBackdrop.classList.add('open');
-      iniciarTimerHistorico();
+        navigator.clipboard.writeText(msg).then(() => {
+            showAlert("Relatório copiado! Abrindo Zap...", "success");
+            setTimeout(() => {
+                window.open("https://chat.whatsapp.com/GODcvt8p5kTGsqFrmNTP6s", "_blank");
+            }, 1000);
+        }).catch(() => showAlert("Erro ao copiar.", "error"));
     }
-    
-    btnHistorico.addEventListener('click', abrirModalHistorico);
-    modalClose.addEventListener('click', () => {
-        pararTimerHistorico();
-        modalBackdrop.classList.remove('open');
-    });
 
-    inicializarBancoDeProdutos();
-    atualizarFluxo();
-  
+    // --- 9. SISTEMA DE NOTIFICAÇÃO (BALÕES) ---
+    function showAlert(mensagem, tipo = 'success') {
+        const container = document.getElementById('alertContainer');
+        
+        const balao = document.createElement('div');
+        balao.className = `balloon ${tipo}`;
+        
+        let icone = '🎈';
+        if(tipo === 'error') icone = '🚫';
+        if(tipo === 'warning') icone = '⚠️';
+        if(tipo === 'success') icone = '✅';
+
+        balao.innerHTML = `<span>${icone}</span> ${mensagem}`;
+        
+        container.appendChild(balao);
+
+        setTimeout(() => {
+            balao.style.animation = 'popOut 0.5s forwards';
+            balao.addEventListener('animationend', () => {
+                balao.remove();
+            });
+        }, 4000);
+    }
+
 </script>
 </body>
-</html><script></script></body></html>
+</html>
