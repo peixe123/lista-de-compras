@@ -2,7 +2,9 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lista de Compras V59 - GitHub Fix</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.4.4/lz-string.min.js"></script>
   <style>
     /* =========================================
        CSS BASE & RESET
@@ -179,7 +181,8 @@
   </style>
 </head>
 <body>
-<h1>Lista de Compras <span id="statusIndicator" class="status-dot" title="Verificando conexão..."></span></h1>
+
+  <h1>Lista de Compras <span id="statusIndicator" class="status-dot" title="Verificando conexão..."></span></h1>
 
   <div class="app-closed-screen" id="appClosedScreen">
       <h2 style="color: #94a3b8; margin-bottom: 25px;">O Aplicativo está seguro.</h2>
@@ -197,11 +200,11 @@
     <div class="linha">
       <div>
         <label for="quantidade">Qtd</label>
-        <input type="number" id="quantidade" min="1" placeholder="1" disabled="">
+        <input type="number" id="quantidade" min="1" placeholder="1" disabled>
       </div>
       <div>
         <label for="unidade">Un</label>
-        <select id="unidade" disabled="">
+        <select id="unidade" disabled>
           <option value="">...</option>
           <option value="un">un</option>
           <option value="kg">kg</option>
@@ -216,16 +219,16 @@
       </div>
       <div>
         <label for="itemNome">Item</label>
-        <input type="text" id="itemNome" list="sugestoes-produtos" placeholder="O que falta?" disabled="">
+        <input type="text" id="itemNome" list="sugestoes-produtos" placeholder="O que falta?" disabled>
         <datalist id="sugestoes-produtos"></datalist>
       </div>
       <div>
         <label for="precoItem">Valor (€)</label>
-        <input type="tel" id="precoItem" placeholder="€ 0,00" disabled="" oninput="mascaraMoeda(this)">
+        <input type="tel" id="precoItem" placeholder="€ 0,00" disabled oninput="mascaraMoeda(this)">
       </div>
     </div>
     
-    <button class="btn-add" id="btnAdd" disabled="">Adicionar à Lista</button>
+    <button class="btn-add" id="btnAdd" disabled>Adicionar à Lista</button>
 
     <ul id="lista"></ul>
     
@@ -233,7 +236,7 @@
       <span>Itens: 0</span>
     </div>
 
-    <button class="btn-gerar" id="btnGerar" disabled="">ENVIAR LISTA PARA WHATSAPP</button>
+    <button class="btn-gerar" id="btnGerar" disabled>ENVIAR LISTA PARA WHATSAPP</button>
     
     <div class="botoes-extras">
         <button class="btn-extra btn-historico" id="btnHistorico">📜 Histórico</button>
@@ -253,7 +256,7 @@
                 <button id="btnCopiarMain" class="btn-pill btn-copiar-laranja">Copiar</button>
             </div>
         </div>
-        <textarea id="saida" readonly="" placeholder="O texto formatado aparecerá aqui..."></textarea>
+        <textarea id="saida" readonly placeholder="O texto formatado aparecerá aqui..."></textarea>
     </div>
   </div>
 
@@ -302,6 +305,7 @@
           </div>
       </div>
   </div>
+
 <script>
     // --- FUNÇÃO GLOBAL DE PLURAL ---
     function plural(qtd, singular, pl) {
@@ -309,11 +313,25 @@
     }
 
     const URL_SERVIDOR_JSON = 'produtos.json'; 
+    
+    // Backup de categorias para não depender só do JSON
     let CATEGORY_ORDER = [
         "Padaria & Pastelaria", "Hortofrutícola", "Carnes & Peixes Frescos", "Congelados", "Laticínios & Frios",
         "Mercearia Seca & Enlatados", "Especiarias & Condimentos", "Bebidas", "Casa & Utilidades", "Limpeza Doméstica",
-        "Farmácia / Saúde", "Higiene Pessoal", "Higiene Infantil", "Pet Shop"
+        "Farmácia / Saúde", "Higiene Pessoal", "Higiene Infantil", "Pet Shop", "Vegetariano"
     ];
+
+    // Backup de ITENS caso o JSON falhe (para a Prancheta Inteligente)
+    let DB_ITENS_BACKUP = {
+        "Padaria & Pastelaria": ["pão", "bolo", "croissant", "broa", "queque", "donuts", "torta"],
+        "Hortofrutícola": ["alface", "tomate", "cebola", "alho", "batata", "cenoura", "fruta", "banana", "maçã", "uva"],
+        "Carnes & Peixes Frescos": ["carne", "peixe", "frango", "bife", "salsicha"],
+        "Mercearia Seca & Enlatados": ["arroz", "massa", "feijão", "atum", "sardinha", "bolacha", "café", "açúcar", "farinha", "batata palha"],
+        "Laticínios & Frios": ["leite", "queijo", "iogurte", "manteiga", "fiambre", "natas", "ovo"],
+        "Bebidas": ["água", "sumo", "refrigerante", "cerveja", "vinho"],
+        "Limpeza Doméstica": ["detergente", "lixívia", "papel", "saco", "esponja"],
+        "Higiene Pessoal": ["champô", "gel", "pasta", "escova", "papel higiénico", "sabonete"]
+    };
 
     const BANCO_DADOS_INICIAL = {};
     const unidadesValidas = ["un", "kg", "g", "L", "ml", "cx", "pct", "Lta", "bdj"];
@@ -493,13 +511,37 @@
         let memoria = JSON.parse(localStorage.getItem(KEY_PRECOS_MEMORIA)) || {};
         return memoria[nomeItem.toLowerCase()] || 0;
     }
+
+    // --- NOVA LÓGICA DE CATEGORIA INTELIGENTE ---
     function obterPrioridadeCategoria(nomeItem) {
-        for (const categoriaKey in bancoDadosCategorizado) {
-            const itensCategoria = bancoDadosCategorizado[categoriaKey].map(i => i.toLowerCase());
-            if (itensCategoria.includes(nomeItem.toLowerCase())) return CATEGORY_ORDER.indexOf(categoriaKey);
+        const nomeNorm = nomeItem.toLowerCase();
+        let melhorCategoria = "Outros";
+        let maiorTamanhoMatch = 0;
+
+        // Usa o banco de dados carregado ou o backup
+        const dbParaUsar = (Object.keys(bancoDadosCategorizado).length > 0) ? bancoDadosCategorizado : DB_ITENS_BACKUP;
+
+        // Itera pelas categorias conhecidas
+        for (let cat of CATEGORY_ORDER) {
+            if (dbParaUsar[cat]) {
+                for (let dbItem of dbParaUsar[cat]) {
+                    const dbItemNorm = dbItem.toLowerCase();
+                    if (nomeNorm.includes(dbItemNorm)) {
+                        // Prioriza o match mais específico (ex: "Batata Palha" > "Batata")
+                        if (dbItemNorm.length > maiorTamanhoMatch) {
+                            maiorTamanhoMatch = dbItemNorm.length;
+                            melhorCategoria = cat;
+                        }
+                    }
+                }
+            }
         }
-        return 99; 
+        
+        // Se não achou, retorna 99 para ir pro fim da lista
+        const index = CATEGORY_ORDER.indexOf(melhorCategoria);
+        return index !== -1 ? index : 99;
     }
+
     function capitalizarNome(nome) {
         if (!nome) return ""; const texto = nome.trim();
         return texto.charAt(0).toUpperCase() + texto.slice(1).toLowerCase();
@@ -635,7 +677,6 @@
                 lista = JSON.parse(JSON.stringify(h.listaBackup)); 
                 responsavelEl.value = h.respValor || ""; 
                 idListaEmEdicao = 0; 
-                snapshotListaOriginal = JSON.stringify({ lista: lista, resp: responsavelEl.value });
                 renderLista(); atualizarFluxo(); 
                 showToast('Lista carregada para edição!', 'sucesso');
                 window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -654,71 +695,75 @@
 
     // GERAÇÃO DE LISTA
     btnGerar.addEventListener('click', () => {
-      try { if (lista.length > 0) gerarListaFinal(true); } 
-      catch (err) { console.error(err); showToast('Erro fatal.', 'erro'); }
+      if (lista.length > 0) gerarListaFinal(true);
     });
 
     function gerarListaFinal(salvarHistorico) {
-      const nomeResp = responsavelEl.options[responsavelEl.selectedIndex].text;
-      
-      const d = new Date();
-      const dd = String(d.getDate()).padStart(2,'0');
-      const mm = String(d.getMonth()+1).padStart(2,'0');
-      const yy = String(d.getFullYear()).slice(-2);
-      const hh = String(d.getHours()).padStart(2,'0');
-      const min = String(d.getMinutes()).padStart(2,'0');
-      const ss = String(d.getSeconds()).padStart(2,'0');
-      const mss = String(d.getMilliseconds()).padStart(3,'0');
-      const cod = `${dd}${mm}${yy}.${hh}${min}${ss}.${mss}`;
-      
-      let listaOrdenada = [...lista].sort((a, b) => {
-          const pA = obterPrioridadeCategoria(a.nome); const pB = obterPrioridadeCategoria(b.nome);
-          return pA === pB ? a.nome.localeCompare(b.nome) : pA - pB;
-      });
+      try {
+          const nomeResp = responsavelEl.options[responsavelEl.selectedIndex].text;
+          
+          const d = new Date();
+          const cod = `${String(d.getDate()).padStart(2,'0')}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getFullYear()).slice(-2)}.${String(d.getHours()).padStart(2,'0')}${String(d.getMinutes()).padStart(2,'0')}${String(d.getSeconds()).padStart(2,'0')}`;
+          
+          // Ordena baseado no Banco de Dados Inteligente
+          let listaOrdenada = [...lista].sort((a, b) => {
+              const pA = obterPrioridadeCategoria(a.nome); const pB = obterPrioridadeCategoria(b.nome);
+              return pA === pB ? a.nome.localeCompare(b.nome) : pA - pB;
+          });
 
-      const dadosMinificados = listaOrdenada.map(i => ({q:i.qtd, u:i.unidade, n:i.nome, p:i.preco}));
-      const jsonStr = JSON.stringify(dadosMinificados);
-      const compressedData = LZString.compressToEncodedURIComponent(jsonStr);
-      
-      const baseUrl = "https://peixe123.github.io/carvalho/carrinho-de-compras/prancheta.html";
-      const linkPrancheta = `${baseUrl}?d=${compressedData}&r=${encodeURIComponent(nomeResp)}&c=1`;
+          const dadosMinificados = listaOrdenada.map(i => ({q:i.qtd, u:i.unidade, n:i.nome, p:i.preco}));
+          const jsonStr = JSON.stringify(dadosMinificados);
+          
+          // VERIFICA SE A BIBLIOTECA CARREGOU
+          if (typeof LZString === 'undefined') {
+              throw new Error("Biblioteca de compressão offline.");
+          }
+          const compressedData = LZString.compressToEncodedURIComponent(jsonStr);
+          
+          // GERA LINK AUTOMÁTICO BASEADO NA PASTA ATUAL
+          const baseUrl = window.location.href.substring(0, window.location.href.lastIndexOf("/")) + "/prancheta.html";
+          const linkPrancheta = `${baseUrl}?d=${compressedData}&r=${encodeURIComponent(nomeResp)}&c=1`;
 
-      let texto = `==================\n LISTA DE COMPRAS\n==================\n`;
-      let total = 0;
-      listaOrdenada.forEach(i => {
-          let fator = ['g', 'ml'].includes(i.unidade) ? 1000 : 1;
-          total += (i.qtd / fator) * (i.preco || 0);
-          texto += `* ${i.qtd} ${i.unidade} ${i.nome}\n`;
-      });
-      
-      const qtdFormatada = String(lista.length).padStart(2,'0');
-      const labelItens = plural(lista.length, 'item', 'itens');
-      
-      texto += `\nCarrinho: ${qtdFormatada} ${labelItens}\n`;
-      
-      if(total > 0) {
-        texto += `Valor Estimado:\n€ ${total.toFixed(2)}\n`;
-      }
+          let texto = `==================\n LISTA DE COMPRAS\n==================\n`;
+          let total = 0;
+          listaOrdenada.forEach(i => {
+              let fator = ['g', 'ml'].includes(i.unidade) ? 1000 : 1;
+              total += (i.qtd / fator) * (i.preco || 0);
+              texto += `* ${i.qtd} ${i.unidade} ${i.nome}\n`;
+          });
+          
+          const qtdFormatada = String(lista.length).padStart(2,'0');
+          const labelItens = plural(lista.length, 'item', 'itens');
+          
+          texto += `\nCarrinho: ${qtdFormatada} ${labelItens}\n`;
+          
+          if(total > 0) {
+            texto += `Valor Estimado:\n€ ${total.toFixed(2)}\n`;
+          }
 
-      texto += `🛒🛒🛒🛒🛒🛒🛒\n`;
-      texto += `----------------------\n`;
-      texto += `${nomeResp}...\n`;
-      texto += `🛍Boas compras!!\n`;
-      texto += `----------------------\n`;
-      texto += `Deby: 323.519.288\n`;
-      texto += `----------------------\n`;
-      texto += `\`${cod}\`\n`;
-      texto += `=================\n`;
-      texto += `\n📋 PRANCHETA:\n${linkPrancheta}\n`;
+          texto += `🛒🛒🛒🛒🛒🛒🛒\n`;
+          texto += `----------------------\n`;
+          texto += `${nomeResp}...\n`;
+          texto += `🛍Boas compras!!\n`;
+          texto += `----------------------\n`;
+          texto += `Deby: 323.519.288\n`;
+          texto += `----------------------\n`;
+          texto += `\`${cod}\`\n`;
+          texto += `=================\n`;
+          texto += `\n📋 PRANCHETA:\n${linkPrancheta}\n`;
 
-      saida.value = texto; 
-      localStorage.setItem(KEY_LAST_VIEW_LIST, texto); 
-      areaBotoesCopiar.style.display = 'flex'; 
-      copiarParaClipboard(texto);
+          saida.value = texto; 
+          localStorage.setItem(KEY_LAST_VIEW_LIST, texto); 
+          areaBotoesCopiar.style.display = 'flex'; 
+          copiarParaClipboard(texto);
 
-      if (salvarHistorico) {
-          salvarNoHistoricoLocal(texto, nomeResp); showToast('Copiado e Salvo!', 'sucesso');
-          iniciarNovaLista();
+          if (salvarHistorico) {
+              salvarNoHistoricoLocal(texto, nomeResp); showToast('Copiado e Salvo!', 'sucesso');
+              iniciarNovaLista();
+          }
+      } catch (err) {
+          console.error(err);
+          showToast(`Erro: ${err.message}`, 'erro');
       }
     }
 
@@ -992,4 +1037,3 @@
 </script>
 </body>
 </html>
-
