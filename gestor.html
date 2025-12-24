@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html>
+<html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Gestor Automático V9 (Ordem A-Z)</title>
+<title>Gestor Automático V10 (GitHub Local)</title>
 <style>
     :root { 
         --primary: #2c3e50; 
@@ -164,7 +164,7 @@
 <body>
 
 <div id="notification-area"></div>
-<div id="auto-save-indicator">☁️ Salvando e organizando...</div>
+<div id="auto-save-indicator">💾 Salvando no celular...</div>
 
 <div id="confirm-modal" class="modal-overlay">
     <div class="modal-content" style="max-height: auto;">
@@ -211,18 +211,18 @@
 <div id="app-content">
     <header>
         <div style="width:100%; display:flex; justify-content:space-between; align-items:center;">
-            <h1>📦 Gestor Inteligente <span id="totalCounter" class="total-badge" title="Total de Itens">0</span></h1>
+            <h1>📦 Gestor V10 <span id="totalCounter" class="total-badge" title="Total de Itens">0</span></h1>
             <button onclick="closeApp()" class="btn-red">FECHAR</button>
         </div>
-        <div id="statusMsg" class="status-bar">A carregar...</div>
+        <div id="statusMsg" class="status-bar">Carregando...</div>
     </header>
 
     <div class="container">
         <div class="toolbar">
-            <button onclick="saveToServer()" class="btn-cloud" title="Status da Nuvem">☁️ Nuvem (Auto)</button>
+            <button onclick="copyDataToClipboard()" class="btn-cloud" title="Copiar JSON para colar em outro lugar">📋 Copiar Dados</button>
             <button onclick="downloadTXT()" class="btn-green">Baixar Backup</button>
             <button onclick="openReorderModal()" class="btn-purple" title="Mudar ordem das categorias">🔃 Ordem</button>
-            <button onclick="forceReset()" style="background:#7f8c8d; color:white;">Recarregar</button>
+            <button onclick="forceReset()" style="background:#7f8c8d; color:white;">Resetar</button>
         </div>
 
         <div class="command-panel">
@@ -338,7 +338,7 @@ function showInputModal(title, defaultValue = '') {
     });
 }
 
-// --- LÓGICA DE REORDENAÇÃO (NOVA) ---
+// --- LÓGICA DE REORDENAÇÃO ---
 function openReorderModal() {
     const activeKeys = Object.keys(appData);
     tempCategoryOrder = CATEGORY_ORDER.filter(k => appData[k]);
@@ -410,7 +410,6 @@ async function saveNewOrder() {
 
 // --- FUNÇÃO DE ORDENAÇÃO A-Z ---
 function sortAllData() {
-    // Percorre todas as categorias e ordena os itens alfabeticamente
     Object.keys(appData).forEach(key => {
         if (Array.isArray(appData[key])) {
             appData[key].sort((a, b) => a.localeCompare(b, 'pt', { sensitivity: 'base' }));
@@ -418,33 +417,50 @@ function sortAllData() {
     });
 }
 
-// --- INICIALIZAÇÃO ---
+// --- INICIALIZAÇÃO (LOCAL STORAGE) ---
+const STORAGE_KEY = 'meuGestorComprasV1';
+
 async function init() {
     const statusMsg = document.getElementById('statusMsg');
-    try {
-        const response = await fetch('produtos.json?v=' + new Date().getTime());
-        if (response.ok) {
-            const serverData = await response.json();
-            const keys = Object.keys(serverData);
-            if(keys.length > 0) {
-                appData = serverData;
-                CATEGORY_ORDER = keys;
-            } else {
-                appData = serverData;
-            }
+    
+    // Tenta carregar do LocalStorage primeiro
+    const localData = localStorage.getItem(STORAGE_KEY);
 
+    if (localData) {
+        console.log("Carregando do LocalStorage...");
+        try {
+            appData = JSON.parse(localData);
+            CATEGORY_ORDER = Object.keys(appData); // Assume ordem salva
             statusMsg.style.color = "#2ecc71";
-            statusMsg.textContent = "Conectado ao Servidor";
-            showAlert('Sistema Online', 'info');
-        } else { throw new Error("Erro arquivo"); }
-    } catch (error) {
-        appData = JSON.parse(JSON.stringify(BACKUP_DATA));
-        statusMsg.style.color = "#e67e22";
-        statusMsg.textContent = "Modo Offline";
-        showAlert('Usando Backup Interno', 'warning');
+            statusMsg.textContent = "Dados Locais Carregados";
+            showAlert('Dados recuperados da memória', 'info');
+        } catch(e) {
+            console.error("Erro ao ler LocalStorage", e);
+            appData = JSON.parse(JSON.stringify(BACKUP_DATA));
+        }
+    } else {
+        // Se não tiver local, tenta o JSON (para primeira carga) ou Backup
+        try {
+            const response = await fetch('produtos.json?v=' + new Date().getTime());
+            if (response.ok) {
+                const serverData = await response.json();
+                const keys = Object.keys(serverData);
+                if(keys.length > 0) {
+                    appData = serverData;
+                    CATEGORY_ORDER = keys;
+                } else {
+                    appData = serverData;
+                }
+                statusMsg.style.color = "#3498db";
+                statusMsg.textContent = "Base Padrão Carregada";
+            } else { throw new Error("Erro arquivo"); }
+        } catch (error) {
+            appData = JSON.parse(JSON.stringify(BACKUP_DATA));
+            statusMsg.style.color = "#e67e22";
+            statusMsg.textContent = "Modo Backup";
+        }
     }
     
-    // Força ordenação logo ao carregar
     sortAllData();
     render();
 }
@@ -487,20 +503,12 @@ function render() {
         const btnEditCat = document.createElement('button');
         btnEditCat.innerHTML = '✏️';
         btnEditCat.className = 'btn-icon btn-edit';
-        btnEditCat.title = 'Renomear categoria';
-        btnEditCat.onclick = (e) => {
-            e.stopPropagation();
-            editCategory(cat);
-        };
+        btnEditCat.onclick = (e) => { e.stopPropagation(); editCategory(cat); };
 
         const btnDelete = document.createElement('button');
         btnDelete.innerHTML = '🗑️';
         btnDelete.className = 'btn-icon btn-delete';
-        btnDelete.title = 'Excluir esta categoria';
-        btnDelete.onclick = (e) => {
-            e.stopPropagation();
-            deleteCategory(cat);
-        };
+        btnDelete.onclick = (e) => { e.stopPropagation(); deleteCategory(cat); };
 
         actionsDiv.appendChild(btnEditCat);
         actionsDiv.appendChild(btnDelete);
@@ -594,45 +602,44 @@ function filterItems() {
     });
 }
 
-// --- AUTO SAVE ---
+// --- AUTO SAVE (AGORA NO LOCAL STORAGE) ---
 async function updateSystem() {
     const indicator = document.getElementById('auto-save-indicator');
     
-    // Força ordenação antes de renderizar ou salvar
     sortAllData();
-
     render();
     const searchTerm = document.getElementById('hybridInput').value;
     if(searchTerm) filterItems();
 
     indicator.style.display = 'block'; 
     
+    // Organiza os dados
     const orderedData = {};
     CATEGORY_ORDER.forEach(k => { if(appData[k]) orderedData[k] = appData[k]; });
     Object.keys(appData).forEach(k => { if(!orderedData[k]) orderedData[k] = appData[k]; });
 
     try {
-        const response = await fetch('salvar.php', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(orderedData, null, 2)
-        });
-        if (!response.ok) throw new Error('Falha no servidor');
+        // SALVA NO NAVEGADOR (LOCALSTORAGE) EM VEZ DE PHP
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(orderedData));
         
-        setTimeout(() => { indicator.style.display = 'none'; }, 800);
+        setTimeout(() => { indicator.style.display = 'none'; }, 600);
         return true; 
 
     } catch (error) {
         console.error(error);
-        showAlert('Erro ao salvar automático!', 'error');
+        showAlert('Erro ao salvar na memória!', 'error');
         indicator.style.display = 'none';
         return false; 
     }
 }
 
-async function saveToServer() {
-    const success = await updateSystem();
-    if(success) showAlert('Sincronização verificada!', 'info');
+function copyDataToClipboard() {
+    const dataStr = JSON.stringify(appData, null, 2);
+    navigator.clipboard.writeText(dataStr).then(() => {
+        showAlert('Dados copiados! Cole onde quiser.', 'info');
+    }).catch(err => {
+        showAlert('Erro ao copiar.', 'error');
+    });
 }
 
 // --- AÇÕES ---
@@ -698,7 +705,6 @@ async function deleteCategory(catName) {
         
         const success = await updateSystem();
         if(success) showAlert('Categoria excluída.', 'info');
-        else showAlert('Categoria excluída (Offline).', 'warning');
     }
 }
 
@@ -771,7 +777,6 @@ async function deleteItem(cat, idx) {
         
         const success = await updateSystem();
         if(success) showAlert('Item removido.', 'info');
-        else showAlert('Item removido (Offline).', 'warning');
     }
 }
 
@@ -787,8 +792,11 @@ function downloadTXT() {
 }
 
 async function forceReset() { 
-    const sim = await showConfirm('Recarregar do servidor?');
-    if(sim) init();
+    const sim = await showConfirm('Apagar TUDO e restaurar padrão?');
+    if(sim) {
+        localStorage.removeItem(STORAGE_KEY);
+        location.reload();
+    }
 }
 
 function closeApp() { 
