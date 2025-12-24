@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Prancheta de Auditoria V6.6 (Smart Cat)</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.4.4/lz-string.min.js"></script>
+    <style>
+        /* ================= CSS BASE ================= */
+        :root {
+            --bg-dark: #0f172a;
+            --card-dark: #1e293b;
+            --text-light: #e2e8f0;
+            --text-muted: #94a3b8;
+            --primary: #22c55e;
+            --danger: #ef4444;
+            --accent: #38bdf8;
+            --resolved-bg: #111827;
+            --extra-item: #f59e0b;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; outline: none; font-family: 'Segoe UI', sans-serif; }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-light);
+            padding: 15px;
+            padding-bottom: 180px;
+            min-height: 100vh;
+        }
+
+        /* HEADER E STATS */
+        header { text-align: center; margin-bottom: 20px; }
+        h1 { font-size: 1.4rem; display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 5px; }
+        .sub-header { color: var(--text-muted); font-size: 0.85rem; margin-bottom: 15px; }
+        
+        .db-status { font-size: 0.7rem; margin-top: -10px; margin-bottom: 15px; font-weight: bold; opacity: 0.7; }
+        .db-online { color: #22c55e; }
+        .db-offline { color: #f59e0b; }
+
+        .stats-bar {
+            display: flex; justify-content: space-around; background: #334155;
+            border-radius: 12px; padding: 10px; font-size: 0.9rem; font-weight: bold;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+        }
+        .stat-item { text-align: center; }
+        .stat-val { display: block; font-size: 1.1rem; color: #fff; }
+        .stat-label { font-size: 0.7rem; color: #cbd5e1; text-transform: uppercase; }
+
+        /* CARDS */
+        .card {
+            background-color: var(--card-dark);
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 15px;
+            transition: all 0.3s ease;
+            position: relative;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+        
+        .card.resolvido {
+            opacity: 0.6;
+            background-color: var(--resolved-bg);
+            border-color: #334155 !important;
+            transform: scale(0.98);
+            filter: grayscale(0.8);
+        }
+
+        .card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
+        .item-info { display: flex; flex-direction: column; }
+        .item-cat { font-size: 0.65rem; text-transform: uppercase; font-weight: 800; margin-bottom: 2px; letter-spacing: 0.5px; opacity: 0.9; }
+        .item-name { font-size: 1.1rem; font-weight: bold; color: #fff; }
+        
+        .badge-pediu {
+            background: rgba(255,255,255,0.1); color: #cbd5e1; padding: 4px 8px;
+            border-radius: 6px; font-size: 0.8rem; font-weight: 600; white-space: nowrap;
+        }
+        .badge-extra {
+            background: var(--extra-item); color: #451a03; padding: 4px 8px;
+            border-radius: 6px; font-size: 0.7rem; font-weight: 800; white-space: nowrap; text-transform: uppercase;
+        }
+
+        /* CONTROLES DO CARD */
+        .card-controls { display: flex; gap: 8px; align-items: stretch; margin-bottom: 15px; }
+
+        .toggle-btn {
+            flex: 1.5; padding: 12px; border-radius: 8px; border: 1px solid transparent;
+            font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px;
+            font-size: 0.9rem; transition: background 0.2s;
+        }
+        .toggle-btn.active { background-color: rgba(34, 197, 94, 0.2); color: var(--primary); border-color: var(--primary); }
+        .toggle-btn.inactive { background-color: rgba(239, 68, 68, 0.2); color: var(--danger); border-color: var(--danger); }
+
+        .done-btn {
+            flex: 1; border-radius: 8px; border: 1px solid #64748b; background: var(--bg-dark);
+            color: #94a3b8; font-size: 0.8rem; font-weight: bold; cursor: pointer; transition: all 0.2s;
+            display: flex; align-items: center; justify-content: center; gap: 5px; text-transform: uppercase;
+        }
+        .done-btn:hover { background: #334155; color: white; }
+        
+        .done-btn.is-done { 
+            background: var(--primary); color: #064e3b; border-color: var(--primary); 
+            box-shadow: 0 0 10px rgba(34,197,94,0.3);
+        }
+
+        /* INPUTS AREA */
+        .audit-inputs {
+            display: grid; grid-template-columns: 1fr 0.8fr 1fr; gap: 8px;
+            padding-top: 10px; border-top: 1px dashed rgba(255,255,255,0.1);
+        }
+        .audit-inputs.hidden { display: none; }
+
+        .input-group { display: flex; flex-direction: column; }
+        .input-group label { font-size: 0.65rem; color: var(--text-muted); display: block; margin-bottom: 3px; font-weight: bold; }
+        input, select {
+            background: #0f172a; border: 1px solid #475569; color: white;
+            padding: 8px; border-radius: 6px; font-size: 0.95rem; text-align: center; width: 100%;
+        }
+        input:focus, select:focus { border-color: var(--accent); }
+
+        .calc-preview {
+            font-size: 0.7rem; color: #4ade80; text-align: center; margin-top: 2px; font-weight: bold;
+        }
+
+        /* ÁREA DE BOTÕES FLUTUANTES */
+        .fab-area {
+            position: fixed; bottom: 20px; left: 0; width: 100%;
+            display: flex; flex-direction: column; align-items: center; gap: 10px;
+            z-index: 100; pointer-events: none;
+        }
+
+        /* Botão Feedback (Verde) */
+        .btn-feedback {
+            pointer-events: auto;
+            width: 90%; max-width: 500px; background: linear-gradient(135deg, #22c55e, #16a34a); color: white;
+            padding: 14px; border: none; border-radius: 50px; font-size: 1rem; font-weight: 800;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.4); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px;
+        }
+        .btn-feedback:active { transform: scale(0.96); }
+
+        /* Botão Link (Azul) */
+        .btn-link {
+            pointer-events: auto;
+            width: 90%; max-width: 500px; background: linear-gradient(135deg, #3b82f6, #2563eb); color: white;
+            padding: 14px; border: none; border-radius: 50px; font-size: 1rem; font-weight: 800;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.4); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px;
+        }
+        .btn-link:active { transform: scale(0.96); }
+
+        /* Botão Add Extra (Flutuante na direita) */
+        .btn-add-extra {
+            pointer-events: auto;
+            position: absolute; bottom: 130px; right: 20px;
+            width: 56px; height: 56px; border-radius: 50%;
+            background: linear-gradient(135deg, #f59e0b, #d97706); color: white;
+            border: none; font-size: 28px; display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 4px 15px rgba(245, 158, 11, 0.4); cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .btn-add-extra:hover { transform: scale(1.1); }
+
+        /* MODAL DE ADD ITEM */
+        .modal-overlay {
+            display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85);
+            z-index: 2000; justify-content: center; align-items: center; backdrop-filter: blur(4px);
+        }
+        .modal-overlay.open { display: flex; animation: fadeIn 0.3s; }
+        
+        .modal-content {
+            background: #1e293b; padding: 25px; border-radius: 16px; width: 90%; max-width: 400px;
+            border: 1px solid #475569; display: flex; flex-direction: column; gap: 15px;
+        }
+        .modal-title { font-size: 1.2rem; font-weight: bold; color: white; margin-bottom: 5px; text-align: center; }
+        
+        .modal-actions { display: flex; gap: 10px; margin-top: 10px; }
+        .btn-cancel { background: transparent; border: 1px solid #64748b; color: #cbd5e1; flex: 1; padding: 12px; border-radius: 8px; font-weight: bold; }
+        .btn-confirm { background: #f59e0b; color: #451a03; flex: 1; padding: 12px; border-radius: 8px; font-weight: bold; border: none; }
+
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        /* --- CSS DOS BALÕES ANIMADOS --- */
+        .custom-alert-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 9999;
+            pointer-events: none;
+        }
+
+        .balloon {
+            background: linear-gradient(135deg, #6e8efb, #a777e3);
+            color: white;
+            padding: 15px 25px;
+            border-radius: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            font-family: 'Segoe UI', sans-serif;
+            font-weight: bold;
+            font-size: 0.95rem;
+            opacity: 0;
+            transform: translateY(20px) scale(0.8);
+            animation: popIn 0.5s cubic-bezier(0.68, -0.55, 0.27, 1.55) forwards,
+                       float 3s ease-in-out infinite;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .balloon.error { background: linear-gradient(135deg, #ff9966, #ff5e62); }
+        .balloon.success { background: linear-gradient(135deg, #56ab2f, #a8e063); }
+        .balloon.warning { background: linear-gradient(135deg, #fce38a, #f38181); color: #451a03; }
+
+        @keyframes popIn {
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+        }
+        @keyframes popOut {
+            to { opacity: 0; transform: translateY(-20px) scale(0.8); }
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="custom-alert-container" id="alertContainer"></div>
+
+    <header>
+        <h1>📋 Prancheta Digital</h1>
+        <div class="sub-header" id="infoResponsavel">Carregando...</div>
+        <div class="db-status" id="dbStatus">Conectando ao banco de dados...</div>
+        
+        <div class="stats-bar">
+            <div class="stat-item">
+                <span class="stat-val" id="statTotal">0</span>
+                <span class="stat-label">Total</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-val" id="statPendentes" style="color:var(--accent)">0</span>
+                <span class="stat-label">Pendentes</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-val" id="statValor">€ 0.00</span>
+                <span class="stat-label">Valor Gasto</span>
+            </div>
+        </div>
+    </header>
+
+    <div id="listaCardsContainer"></div>
+
+    <div class="fab-area">
+        <button class="btn-add-extra" onclick="abrirModalExtra()" title="Adicionar Item Extra">➕</button>
+        <button class="btn-link" onclick="gerarLinkSnapshot()">🔗 SALVAR LINK</button>
+        <button class="btn-feedback" onclick="gerarFeedback()">🚀 ENVIAR FEEDBACK</button>
+    </div>
+
+    <div class="modal-overlay" id="modalExtra">
+        <div class="modal-content">
+            <div class="modal-title">Adicionar Item Extra</div>
+            
+            <div>
+                <label>Nome do Produto</label>
+                <input type="text" id="extraNome" placeholder="Ex: Chocolate..." style="text-align: left;">
+            </div>
+
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                <div>
+                    <label>Qtd</label>
+                    <input type="number" id="extraQtd" placeholder="1">
+                </div>
+                <div>
+                    <label>Unidade</label>
+                    <select id="extraUn">
+                        <option value="un">un</option>
+                        <option value="kg">kg</option>
+                        <option value="g">g</option>
+                        <option value="L">L</option>
+                        <option value="ml">ml</option>
+                        <option value="cx">cx</option>
+                        <option value="pct">pct</option>
+                        <option value="Lta">Lta</option>
+                        <option value="bdj">bdj</option>
+                    </select>
+                </div>
+            </div>
+
+            <div>
+                <label>Preço UNITÁRIO (€)</label>
+                <input type="number" id="extraPreco" placeholder="Preço da etiqueta">
+                <div style="font-size:11px; color:#94a3b8; margin-top:4px;">* O sistema calculará o total.</div>
+            </div>
+
+            <div class="modal-actions">
+                <button class="btn-cancel" onclick="fecharModalExtra()">Cancelar</button>
+                <button class="btn-confirm" onclick="confirmarItemExtra()">Adicionar</button>
+            </div>
+        </div>
+    </div>
+
+<script>
+    // --- 1. CONFIGURAÇÃO E DADOS ---
+    const params = new URLSearchParams(window.location.search);
+    const rawData = params.get('d');
+    const responsavel = params.get('r') || 'Desconhecido';
+    const unidadesValidas = ["un", "kg", "g", "L", "ml", "cx", "pct", "Lta", "bdj"];
+
+    // Prioridade base
+    let CATEGORY_ORDER = [
+        "Padaria & Pastelaria", "Hortofrutícola", "Carnes & Peixes Frescos", "Congelados", "Laticínios & Frios",
+        "Mercearia Seca & Enlatados", "Especiarias & Condimentos", "Bebidas", "Casa & Utilidades", "Limpeza Doméstica",
+        "Farmácia / Saúde", "Higiene Pessoal", "Higiene Infantil", "Pet Shop", "Vegetariano", "Outros"
+    ];
+
+    const CATEGORY_COLORS = {
+        "Padaria & Pastelaria": "#f59e0b",
+        "Hortofrutícola": "#65a30d",
+        "Carnes & Peixes Frescos": "#ef4444",
+        "Congelados": "#06b6d4",
+        "Laticínios & Frios": "#fcd34d",
+        "Mercearia Seca & Enlatados": "#8b5cf6",
+        "Especiarias & Condimentos": "#d97706",
+        "Bebidas": "#3b82f6",
+        "Casa & Utilidades": "#64748b",
+        "Limpeza Doméstica": "#14b8a6",
+        "Farmácia / Saúde": "#ec4899",
+        "Higiene Pessoal": "#f43f5e",
+        "Higiene Infantil": "#a855f7",
+        "Pet Shop": "#78350f"
+    };
+    const DEFAULT_COLOR = "#94a3b8";
+
+    // BACKUP DE SEGURANÇA (Caso falhe o download)
+    let DB_ITENS = {
+      "Padaria & Pastelaria": ["Bolo de arroz", "Bolo-rei", "Broa", "Croissant", "Donuts", "Madalena", "Pão brasileiro", "Pão de centeio", "Pão de deus", "Pão de forma", "Pão de ló", "Pão de mistura", "Pão integral", "Pão pita", "Queques", "Torta de laranja", "Pão", "Bolo", "Salgados"],
+      "Hortofrutícola": ["Abacate", "Abóbora", "Abobrinha", "Agrião", "Alface", "Alho", "Ananás", "Banana", "Batata", "Batata-doce", "Berinjela", "Beterraba", "Cebola", "Cebola roxa", "Cenoura", "Coco", "Couve portuguesa", "Espinafres", "Figo", "Kiwi", "Laranja", "Maçã", "Melancia", "Melão", "Morango", "Nabo", "Pepino", "Pêra", "Pimento verde", "Pimento vermelho", "Romã", "Rúcula", "Tangerina", "Tomate", "Tomate cherry", "Uva", "Couve", "Pimento", "Fruta", "Limão"],
+      "Carnes & Peixes Frescos": ["Asas de frango", "Bife de vaca", "Carne picada", "Chouriço", "Linguiça", "Peito de frango", "Perna de frango", "Salsichas", "Carne", "Frango", "Peixe", "Bacalhau"],
+      "Congelados": ["Batata frita congelada", "Camarão congelado", "Croquetes", "Empadas congeladas", "Ervilhas congeladas", "Esparguete à bolonhesa congelado", "Espinafres congelados", "Frango inteiro", "Gelado", "Gelado de chocolate", "Gelado de frutas", "Gelado de iogurte", "Hambúrgueres", "Lasanha grande", "Lasanha pequena", "Legumes congelados", "Massa folhada congelada", "Nuggets de frango", "Pão de alho congelado", "Pasteis de bacalhau congelados", "Peixe congelado", "Pizza congelada", "Rissóis congelados", "Pizza", "Nuggets", "Batata frita"],
+      "Laticínios & Frios": ["Fiambre", "Iogurte aromatizado", "Iogurte grego", "Iogurte natural", "Leite gordo", "Leite magro", "Leite meio gordo", "Leite sem lactose", "Manteiga com sal", "Manteiga sem sal", "Margarina", "Natas para bater", "Ovos brancos", "Ovos castanhos", "Presunto", "Queijo creme", "Queijo edam", "Queijo flamengo", "Queijo fresco", "Queijo mozzarella", "Queijo parmesão", "Requeijão", "Salame", "Salpicão", "Leite", "Iogurte", "Queijo", "Manteiga", "Natas", "Ovos", "Bacon"],
+      "Mercearia Seca & Enlatados": ["Achocolatado em pó", "Açúcar amarelo", "Açúcar branco", "Açúcar mascavado", "Adoçante", "Amido de milho", "Anchovas", "Arroz", "Atum em lata", "Azeite virgem extra", "Azeitonas", "Batata palha", "Bicarbonato de sódio", "Bolachas água e sal", "Bolachas de manteiga", "Bolachas Maria", "Bolachas recheadas", "Cacau em pó", "Café em pó", "Café molido", "Café solúvel", "Cappuccino pronto", "Cápsulas de café", "Cavala em lata", "Cereais de pequeno-almoço", "Chá a granel", "Chá em saqueta", "Chocolate em pó", "Cogumelos em lata", "Compota", "Concentrado de tomate", "Creme de leite", "Cubos de caldo de carne", "Cubos de caldo de legumes", "Cuscuz", "Doce de morango", "Doce de ovos", "Ervilhas em lata", "Farinha de milho", "Farinha de trigo com fermento", "Farinha de trigo S/ fermento", "Feijão", "Feijão em lata", "Feijão frade", "Feijão frade em lata", "Fermento em pó", "Flocos de aveia", "Fubá", "Granola", "Grão-de-bico", "Ketchup", "Leite condensado", "Leite de coco", "Leite em pó", "Lentilhas", "Maionese", "Massa cotovelos", "Massa espiral", "Massa penne", "Mel", "Milho em lata", "Molho de soja", "Molho inglês", "Molho tártaro", "Mostarda", "Nhoque", "Óleo de girassol", "Óleo de soja", "Patê de atum", "Patê de fígado", "Picles", "Pimentos em conserva", "Polpa de tomate", "Polvilho doce", "Puré de batata", "Puré de tomate", "Quinoa", "Sardinha em lata", "Sementes de chia", "Sementes de linhaça", "Tempero em pó", "Tomate pelado", "Torradas", "Vinagre de vinho", "Massa", "Esparguete", "Farinha", "Açúcar", "Óleo", "Azeite", "Vinagre", "Molho", "Bolacha", "Cereal", "Café", "Chá"],
+      "Especiarias & Condimentos": ["Açafrão", "Azeite com ervas", "Canela em pó", "Coentros secos", "Colorau S/ pimenta", "Cominhos", "Cravinho", "Gengibre em pó", "Louro", "Manteiga de amendoim", "Noz-moscada", "Orégãos", "Páprica em pó", "Pasta de sésamo", "Pimenta preta", "Piripiri", "Sal grosso", "Sal refinado", "Vinagre", "Vinagre balsâmico", "Vinagre de maçã", "Pimenta", "Sal", "Canela", "Colorau"],
+      "Bebidas": ["Água de coco", "Água mineral com gás", "Água mineral sem gás", "Água tónica", "Aguardente", "Bebida vegetal", "Cerveja artesanal", "Cerveja lager", "Cerveja pilsen", "Energético", "Espumante", "Licor", "Néctar de pêssego", "Refrigerante de cola", "Refrigerante de laranja", "Refrigerante de limão", "Sumo de ananás", "Sumo de laranja", "Sumo de limão", "Sumo de maçã", "Vinho branco", "Vinho do Porto", "Vinho tinto", "Vodka", "Whisky", "Água", "Sumo", "Refrigerante", "Coca-cola", "Cerveja", "Vinho"],
+      "Casa & Utilidades": ["Esponjas de cozinha", "Filme aderente", "Fita adesiva", "Fósforos", "Papel alumínio", "Pilhas AA", "Pilhas AAA", "Sacos do lixo", "Sacos para congelação", "Velas", "Filme", "Pilha"],
+      "Limpeza Doméstica": ["Água lixívia", "Amaciador da roupa", "Amaciador para máquina", "Aromatizante ambiente", "Desinfetante multiusos", "Detergente da loiça", "Detergente da roupa", "Detergente para máquina de lavar", "Esponja de aço", "Esponja dupla face", "Limpa-vidros", "Luvas de limpeza", "Panos de microfibra", "Pastilhas para lava-loiça", "Removedor de calcário", "Sabão em pó", "Sabão líquido para as mãos", "Sabonete em barra", "Saco para aspirador", "Tira-graxa", "Vassoura", "Detergente", "Lixívia", "Sabão", "Esponja", "Limpa", "Desinfetante", "Saco lixo", "Pano"],
+      "Farmácia / Saúde": ["Álcool etílico", "Algodão", "Anti-histamínico", "Comprimidos para azia", "Creme hidratante corporal", "Creme para pés", "Desinfetante para mãos", "Ibuprofeno", "Multivitamínicos", "Paracetamol", "Pensos rápidos", "Protetor solar", "Termómetro digital", "Vitamina C", "Xarope para tosse"],
+      "Higiene Pessoal": ["Absorventes higiénicos", "Cotonetes", "Creme de barbear", "Creme facial", "Creme pós-barba", "Cuidado íntimo feminino", "Desmaquilhante", "Desodorizante em spray", "Desodorizante roll-on", "Discos de desmaquilhar", "Elásticos de cabelo", "Escova de cabelo", "Escova de dentes", "Espuma de barbear", "Fio dentário", "Gel de banho", "Lâminas de barbear", "Pasta de dentes", "Pente", "Protetor labial", "Sabonete líquido", "Tampões", "Toalhitas húmidas", "Sabonete", "Shampoo", "Creme", "Desodorizante", "Pasta dentes", "Escova", "Papel higiénico", "Gel de banho"],
+      "Higiene Infantil": ["Creme hidratante infantil", "Fraldas", "Lenços humedecidos", "Pomada para assaduras", "Sabonete líquido infantil"],
+      "Pet Shop": ["Ração para cães", "Ração para gatos", "Ração", "Areia"]
+    };
+
+    let listaItens = [];
+
+    // --- 2. FUNÇÕES DE SUPORTE (NOVA LÓGICA DE CATEGORIA) ---
+    function descobrirCategoria(nome) {
+        const nomeNorm = nome.toLowerCase();
+        let melhorCategoria = "Outros";
+        let maiorTamanhoMatch = 0;
+
+        // Itera por todas as categorias
+        for (let cat of CATEGORY_ORDER) {
+            if (DB_ITENS[cat]) {
+                // Procura cada item do banco dentro do nome do produto
+                for (let dbItem of DB_ITENS[cat]) {
+                    const dbItemNorm = dbItem.toLowerCase();
+                    
+                    // Se encontrar o item dentro do nome digitado
+                    if (nomeNorm.includes(dbItemNorm)) {
+                        // Se esse match for mais específico (palavra maior), ele ganha
+                        // Ex: "Batata Palha" (12 chars) ganha de "Batata" (6 chars)
+                        if (dbItemNorm.length > maiorTamanhoMatch) {
+                            maiorTamanhoMatch = dbItemNorm.length;
+                            melhorCategoria = cat;
+                        }
+                    }
+                }
+            }
+        }
+        return melhorCategoria; 
+    }
+
+    function plural(n, singular, pl) { return n === 1 ? singular : pl; }
+
+    function calcularTotalItem(qtd, un, precoUnit) {
+        let fator = 1;
+        if (un === 'g' || un === 'ml') fator = 1000;
+        return (qtd / fator) * precoUnit;
+    }
+
+    // --- 3. INICIALIZAÇÃO HÍBRIDA ---
+    window.onload = async () => {
+        document.getElementById('infoResponsavel').innerText = `Auditoria de: ${responsavel}`;
+        
+        // 3.1 TENTAR FETCH ONLINE IGUAL AO GESTOR
+        const statusEl = document.getElementById('dbStatus');
+        try {
+            const response = await fetch('produtos.json?v=' + new Date().getTime());
+            if (response.ok) {
+                const serverData = await response.json();
+                if(Object.keys(serverData).length > 0) {
+                    DB_ITENS = serverData; // Atualiza a memória com o arquivo real
+                    CATEGORY_ORDER = Object.keys(serverData); // Atualiza a ordem
+                    statusEl.innerText = "Base de Dados: Atualizada (Online) 🟢";
+                    statusEl.className = "db-status db-online";
+                }
+            } else {
+                throw new Error("Falha ao carregar JSON");
+            }
+        } catch (e) {
+            console.log("Modo Offline ativado: " + e);
+            statusEl.innerText = "Base de Dados: Memória Interna (Offline) 🟠";
+            statusEl.className = "db-status db-offline";
+        }
+
+        // 3.2 PROCESSAR DADOS DA URL
+        if (rawData) {
+            try {
+                let dados;
+                const isCompressed = params.get('c') === '1';
+
+                if (isCompressed) {
+                    const decompressed = LZString.decompressFromEncodedURIComponent(rawData);
+                    if (!decompressed) throw new Error("Erro na descompressão");
+                    dados = JSON.parse(decompressed);
+                } else {
+                    dados = JSON.parse(decodeURIComponent(rawData));
+                }
+
+                if (!dados) throw new Error("Falha ao ler dados");
+
+                listaItens = dados.map((item, idx) => ({
+                    ...item,
+                    originalIndex: idx,
+                    cat: descobrirCategoria(item.n), // Agora usa a lógica nova e inteligente
+                    encontrado: (item.encontrado !== undefined) ? item.encontrado : true,
+                    resolvido: (item.resolvido !== undefined) ? item.resolvido : false,
+                    isExtra: (item.isExtra !== undefined) ? item.isExtra : false,
+                    qtdReal: (item.qtdReal !== undefined) ? item.qtdReal : item.q,
+                    unReal: (item.unReal !== undefined) ? item.unReal : item.u,
+                    precoUnitario: (item.precoUnitario !== undefined) ? item.precoUnitario : 0, 
+                    valorTotal: 0      
+                }));
+                // Recalcular totais na carga
+                listaItens.forEach(i => {
+                    i.valorTotal = calcularTotalItem(i.qtdReal, i.unReal, i.precoUnitario);
+                });
+                renderizar();
+            } catch (e) {
+                console.error(e);
+                showAlert("Erro ao processar lista (Link inválido).", "error");
+            }
+        }
+    };
+
+    // --- 4. RENDERIZAÇÃO ---
+    function renderizar() {
+        const container = document.getElementById('listaCardsContainer');
+        container.innerHTML = '';
+
+        // Stats
+        const total = listaItens.length;
+        const pendentes = listaItens.filter(i => !i.resolvido).length;
+        const valorTotalGeral = listaItens.reduce((acc, cur) => acc + (cur.valorTotal || 0), 0);
+
+        document.getElementById('statTotal').innerText = `${total} ${plural(total, 'Item', 'Itens')}`;
+        document.getElementById('statPendentes').innerText = `${pendentes} ${plural(pendentes, 'Item', 'Itens')}`;
+        document.getElementById('statValor').innerText = `€ ${valorTotalGeral.toFixed(2)}`;
+
+        // Ordenação por CATEGORY_ORDER
+        const listaOrdenada = [...listaItens].sort((a, b) => {
+            if (a.resolvido !== b.resolvido) return a.resolvido ? 1 : -1;
+            if (!a.resolvido && a.isExtra !== b.isExtra) return a.isExtra ? -1 : 1;
+
+            const idxA = CATEGORY_ORDER.indexOf(a.cat);
+            const idxB = CATEGORY_ORDER.indexOf(b.cat);
+            
+            const pesoA = idxA === -1 ? 999 : idxA;
+            const pesoB = idxB === -1 ? 999 : idxB;
+            
+            if (pesoA !== pesoB) return pesoA - pesoB;
+            return a.n.localeCompare(b.n);
+        });
+
+        if(listaOrdenada.length === 0) {
+            container.innerHTML = '<p style="text-align:center;color:#64748b;margin-top:50px">Lista vazia.</p>';
+            return;
+        }
+
+        listaOrdenada.forEach((item) => {
+            const realIndex = listaItens.indexOf(item); 
+            
+            let classes = 'card';
+            let badgeHtml = `<span class="badge-pediu">Pediu: ${item.q} ${item.u}</span>`;
+            
+            let catColor = CATEGORY_COLORS[item.cat] || DEFAULT_COLOR;
+            if (item.isExtra) catColor = "#f59e0b";
+
+            if (item.resolvido) {
+                classes += ' resolvido';
+            } else {
+                if (item.isExtra) {
+                    classes += ' extra';
+                    badgeHtml = `<span class="badge-extra">⚠️ ITEM EXTRA</span>`;
+                }
+            }
+            
+            const card = document.createElement('div');
+            card.className = classes;
+            
+            // APLICAÇÃO DA MOLDURA COLORIDA (Baseada na Categoria)
+            if (!item.resolvido) {
+                card.style.border = `2px solid ${catColor}`;
+                card.style.borderLeft = `10px solid ${catColor}`;
+                card.style.backgroundColor = `${catColor}10`;
+            } else {
+                card.style.border = `1px solid #334155`;
+                card.style.borderLeft = `5px solid #334155`;
+            }
+
+            let optionsUn = unidadesValidas.map(u => 
+                `<option value="${u}" ${u === item.unReal ? 'selected' : ''}>${u}</option>`
+            ).join('');
+
+            let btnToggleLabel = item.encontrado ? '🟢 Achei' : '🔴 Não tem';
+            if (item.isExtra) btnToggleLabel = '🗑️ Remover';
+
+            const valUnitStr = item.precoUnitario > 0 ? item.precoUnitario : '';
+
+            card.innerHTML = `
+                <div class="card-header">
+                    <div class="item-info">
+                        <span class="item-cat" style="color:${item.resolvido ? '#64748b' : catColor}">${item.cat}</span>
+                        <span class="item-name">${item.n}</span>
+                    </div>
+                    ${badgeHtml}
+                </div>
+
+                <div class="card-controls">
+                    <button class="toggle-btn ${item.encontrado ? 'active' : 'inactive'}" 
+                            onclick="toggleStatus(${realIndex})">
+                        ${btnToggleLabel}
+                    </button>
+                    
+                    <button class="done-btn ${item.resolvido ? 'is-done' : ''}" 
+                            onclick="toggleResolvido(${realIndex})" title="Finalizar Item">
+                        ${item.resolvido ? '✅ Concluído' : '✔️ Concluir'}
+                    </button>
+                </div>
+
+                <div class="audit-inputs ${(!item.encontrado || item.resolvido) ? 'hidden' : ''}">
+                    <div class="input-group">
+                        <label>QTD REAL</label>
+                        <input type="number" inputmode="decimal" value="${item.qtdReal}" 
+                               onchange="atualizarDado(${realIndex}, 'qtdReal', this.value)">
+                    </div>
+                    <div class="input-group">
+                        <label>UNIDADE</label>
+                        <select onchange="atualizarDado(${realIndex}, 'unReal', this.value)">
+                            ${optionsUn}
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label>PREÇO UNIT (€)</label>
+                        <input type="number" inputmode="decimal" value="${valUnitStr}" placeholder="0.00"
+                               onchange="atualizarDado(${realIndex}, 'precoUnitario', this.value)">
+                        <div class="calc-preview">Total: € ${item.valorTotal.toFixed(2)}</div>
+                    </div>
+                </div>
+            `;
+            container.appendChild(card);
+        });
+    }
+
+    // --- 5. AÇÕES DO USUÁRIO ---
+
+    function toggleStatus(index) {
+        const item = listaItens[index];
+
+        if (item.isExtra) {
+            if(confirm("Remover este item extra da auditoria?")) {
+                listaItens.splice(index, 1);
+                showAlert("Item extra removido.", "warning");
+                renderizar();
+            }
+            return;
+        }
+
+        item.encontrado = !item.encontrado;
+        if (!item.encontrado) {
+            item.resolvido = true;
+            item.precoUnitario = 0;
+            item.valorTotal = 0;
+            showAlert("Item não encontrado. Movido para o final.", "error");
+        } else {
+            item.resolvido = false;
+        }
+        renderizar();
+    }
+
+    function toggleResolvido(index) {
+        listaItens[index].resolvido = !listaItens[index].resolvido;
+        renderizar();
+        
+        // NOTIFICAÇÃO SOLICITADA PARA AMBOS OS ESTADOS
+        if(listaItens[index].resolvido) {
+            showAlert("Item concluído! Arrochou!", "success");
+        } else {
+            showAlert("Item reaberto. Vamos conferir de novo?", "warning");
+        }
+    }
+
+    function atualizarDado(index, campo, valor) {
+        const item = listaItens[index];
+        if (campo === 'unReal') {
+            item.unReal = valor;
+        } else {
+            item.precoUnitario = parseFloat(valor) || 0; 
+            if(campo === 'qtdReal') item.qtdReal = parseFloat(valor) || 0;
+            if(campo === 'precoUnitario') item.precoUnitario = parseFloat(valor) || 0;
+        }
+        item.valorTotal = calcularTotalItem(item.qtdReal, item.unReal, item.precoUnitario);
+        renderizar(); 
+    }
+
+    // --- 6. FUNÇÕES DO MODAL EXTRA ---
+    const modalExtra = document.getElementById('modalExtra');
+    const inpNome = document.getElementById('extraNome');
+    const inpQtd = document.getElementById('extraQtd');
+    const inpUn = document.getElementById('extraUn');
+    const inpPreco = document.getElementById('extraPreco');
+
+    function abrirModalExtra() {
+        inpNome.value = '';
+        inpQtd.value = '';
+        inpUn.value = 'un';
+        inpPreco.value = '';
+        modalExtra.classList.add('open');
+        inpNome.focus();
+    }
+
+    function fecharModalExtra() {
+        modalExtra.classList.remove('open');
+    }
+
+    function confirmarItemExtra() {
+        const nome = inpNome.value.trim();
+        const qtd = parseFloat(inpQtd.value);
+        const un = inpUn.value;
+        const precoUnit = parseFloat(inpPreco.value) || 0;
+
+        if (!nome || !qtd) {
+            showAlert("Preencha Nome e Quantidade.", "error");
+            return;
+        }
+
+        const totalCalc = calcularTotalItem(qtd, un, precoUnit);
+
+        const novoItem = {
+            n: nome,
+            q: 0,
+            u: un,
+            cat: descobrirCategoria(nome), // Usa a nova lógica também aqui
+            encontrado: true,
+            resolvido: false,
+            isExtra: true,
+            qtdReal: qtd,
+            unReal: un,
+            precoUnitario: precoUnit,
+            valorTotal: totalCalc
+        };
+
+        listaItens.push(novoItem);
+        showAlert("Item Extra Adicionado!", "warning");
+        fecharModalExtra();
+        renderizar();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // --- 7. GERAR LINK SNAPSHOT ---
+    function gerarLinkSnapshot() {
+        if (listaItens.length === 0) {
+            showAlert("A lista está vazia, meu rei!", "error");
+            return;
+        }
+
+        const listaParaSalvar = listaItens.map(i => ({
+            n: i.n,
+            q: i.q,
+            u: i.u,
+            encontrado: i.encontrado,
+            resolvido: i.resolvido,
+            isExtra: i.isExtra,
+            qtdReal: i.qtdReal,
+            unReal: i.unReal,
+            precoUnitario: i.precoUnitario
+        }));
+
+        const jsonLista = JSON.stringify(listaParaSalvar);
+        const dadosComprimidos = LZString.compressToEncodedURIComponent(jsonLista);
+        
+        const urlBase = window.location.href.split('?')[0];
+        const novaURL = `${urlBase}?d=${dadosComprimidos}&r=${encodeURIComponent(responsavel)}&c=1`;
+
+        navigator.clipboard.writeText(novaURL).then(() => {
+            showAlert("Link copiado! Pode salvar onde quiser.", "success");
+        }).catch(err => {
+            console.error(err);
+            showAlert("Erro ao copiar o link.", "error");
+        });
+    }
+
+    // --- 8. FEEDBACK (ZAP) ---
+    function gerarFeedback() {
+        let totalGasto = 0;
+        let divergencias = [];
+        let faltantes = [];
+        let extras = [];
+        let okCount = 0;
+
+        listaItens.forEach(item => {
+            if (item.isExtra) {
+                totalGasto += item.valorTotal;
+                extras.push(`➕ ${item.n} (${item.qtdReal} ${item.unReal} | Total: €${item.valorTotal.toFixed(2)})`);
+            }
+            else if (item.encontrado) {
+                okCount++;
+                totalGasto += item.valorTotal;
+                const qtdMudou = parseFloat(item.qtdReal) !== parseFloat(item.q);
+                const unMudou = item.unReal !== item.u;
+                if (qtdMudou || unMudou) {
+                    divergencias.push(`⚠️ ${item.n}: Era ${item.q}${item.u} ➔ Trouxe ${item.qtdReal}${item.unReal}`);
+                }
+            } else {
+                faltantes.push(`❌ ${item.n}`);
+            }
+        });
+
+        let msg = `*🛒 RELATÓRIO DE COMPRAS*\n`;
+        msg += `Auditor: ${responsavel}\n`;
+        msg += `------------------------------\n`;
+
+        if (faltantes.length > 0) {
+            msg += `*Não Encontrados (${faltantes.length}):*\n`;
+            msg += faltantes.join('\n') + `\n\n`;
+        }
+        
+        if (extras.length > 0) {
+            msg += `*🛒 Itens Extras (${extras.length}):*\n`;
+            msg += extras.join('\n') + `\n\n`;
+        }
+
+        if (divergencias.length > 0) {
+            msg += `*Alterações de Qtd (${divergencias.length}):*\n`;
+            msg += divergencias.join('\n') + `\n\n`;
+        }
+
+        msg += `------------------------------\n`;
+        msg += `✅ Itens Originais: ${okCount}/${listaItens.filter(i=>!i.isExtra).length}\n`;
+        msg += `💰 *Total Gasto: € ${totalGasto.toFixed(2)}*\n`;
+
+        navigator.clipboard.writeText(msg).then(() => {
+            showAlert("Relatório copiado! Abrindo Zap...", "success");
+            setTimeout(() => {
+                window.open("https://chat.whatsapp.com/GODcvt8p5kTGsqFrmNTP6s", "_blank");
+            }, 1000);
+        }).catch(() => showAlert("Erro ao copiar.", "error"));
+    }
+
+    // --- 9. SISTEMA DE NOTIFICAÇÃO (BALÕES) ---
+    function showAlert(mensagem, tipo = 'success') {
+        const container = document.getElementById('alertContainer');
+        
+        const balao = document.createElement('div');
+        balao.className = `balloon ${tipo}`;
+        
+        let icone = '🎈';
+        if(tipo === 'error') icone = '🚫';
+        if(tipo === 'warning') icone = '⚠️';
+        if(tipo === 'success') icone = '✅';
+
+        balao.innerHTML = `<span>${icone}</span> ${mensagem}`;
+        
+        container.appendChild(balao);
+
+        setTimeout(() => {
+            balao.style.animation = 'popOut 0.5s forwards';
+            balao.addEventListener('animationend', () => {
+                balao.remove();
+            });
+        }, 4000);
+    }
+
+</script>
+</body>
+</html>
