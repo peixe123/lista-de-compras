@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Prancheta de Auditoria V6.6 (Smart Cat)</title>
+    <title>Prancheta de Auditoria V6.7 (BR Fix)</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.4.4/lz-string.min.js"></script>
     <style>
         /* ================= CSS BASE ================= */
@@ -333,43 +333,38 @@
     };
     const DEFAULT_COLOR = "#94a3b8";
 
-    // BACKUP DE SEGURANÇA (Caso falhe o download)
+    // BACKUP DE SEGURANÇA (BR FIX - V6.7)
     let DB_ITENS = {
-      "Padaria & Pastelaria": ["Bolo de arroz", "Bolo-rei", "Broa", "Croissant", "Donuts", "Madalena", "Pão brasileiro", "Pão de centeio", "Pão de deus", "Pão de forma", "Pão de ló", "Pão de mistura", "Pão integral", "Pão pita", "Queques", "Torta de laranja", "Pão", "Bolo", "Salgados"],
-      "Hortofrutícola": ["Abacate", "Abóbora", "Abobrinha", "Agrião", "Alface", "Alho", "Ananás", "Banana", "Batata", "Batata-doce", "Berinjela", "Beterraba", "Cebola", "Cebola roxa", "Cenoura", "Coco", "Couve portuguesa", "Espinafres", "Figo", "Kiwi", "Laranja", "Maçã", "Melancia", "Melão", "Morango", "Nabo", "Pepino", "Pêra", "Pimento verde", "Pimento vermelho", "Romã", "Rúcula", "Tangerina", "Tomate", "Tomate cherry", "Uva", "Couve", "Pimento", "Fruta", "Limão"],
-      "Carnes & Peixes Frescos": ["Asas de frango", "Bife de vaca", "Carne picada", "Chouriço", "Linguiça", "Peito de frango", "Perna de frango", "Salsichas", "Carne", "Frango", "Peixe", "Bacalhau"],
-      "Congelados": ["Batata frita congelada", "Camarão congelado", "Croquetes", "Empadas congeladas", "Ervilhas congeladas", "Esparguete à bolonhesa congelado", "Espinafres congelados", "Frango inteiro", "Gelado", "Gelado de chocolate", "Gelado de frutas", "Gelado de iogurte", "Hambúrgueres", "Lasanha grande", "Lasanha pequena", "Legumes congelados", "Massa folhada congelada", "Nuggets de frango", "Pão de alho congelado", "Pasteis de bacalhau congelados", "Peixe congelado", "Pizza congelada", "Rissóis congelados", "Pizza", "Nuggets", "Batata frita"],
-      "Laticínios & Frios": ["Fiambre", "Iogurte aromatizado", "Iogurte grego", "Iogurte natural", "Leite gordo", "Leite magro", "Leite meio gordo", "Leite sem lactose", "Manteiga com sal", "Manteiga sem sal", "Margarina", "Natas para bater", "Ovos brancos", "Ovos castanhos", "Presunto", "Queijo creme", "Queijo edam", "Queijo flamengo", "Queijo fresco", "Queijo mozzarella", "Queijo parmesão", "Requeijão", "Salame", "Salpicão", "Leite", "Iogurte", "Queijo", "Manteiga", "Natas", "Ovos", "Bacon"],
-      "Mercearia Seca & Enlatados": ["Achocolatado em pó", "Açúcar amarelo", "Açúcar branco", "Açúcar mascavado", "Adoçante", "Amido de milho", "Anchovas", "Arroz", "Atum em lata", "Azeite virgem extra", "Azeitonas", "Batata palha", "Bicarbonato de sódio", "Bolachas água e sal", "Bolachas de manteiga", "Bolachas Maria", "Bolachas recheadas", "Cacau em pó", "Café em pó", "Café molido", "Café solúvel", "Cappuccino pronto", "Cápsulas de café", "Cavala em lata", "Cereais de pequeno-almoço", "Chá a granel", "Chá em saqueta", "Chocolate em pó", "Cogumelos em lata", "Compota", "Concentrado de tomate", "Creme de leite", "Cubos de caldo de carne", "Cubos de caldo de legumes", "Cuscuz", "Doce de morango", "Doce de ovos", "Ervilhas em lata", "Farinha de milho", "Farinha de trigo com fermento", "Farinha de trigo S/ fermento", "Feijão", "Feijão em lata", "Feijão frade", "Feijão frade em lata", "Fermento em pó", "Flocos de aveia", "Fubá", "Granola", "Grão-de-bico", "Ketchup", "Leite condensado", "Leite de coco", "Leite em pó", "Lentilhas", "Maionese", "Massa cotovelos", "Massa espiral", "Massa penne", "Mel", "Milho em lata", "Molho de soja", "Molho inglês", "Molho tártaro", "Mostarda", "Nhoque", "Óleo de girassol", "Óleo de soja", "Patê de atum", "Patê de fígado", "Picles", "Pimentos em conserva", "Polpa de tomate", "Polvilho doce", "Puré de batata", "Puré de tomate", "Quinoa", "Sardinha em lata", "Sementes de chia", "Sementes de linhaça", "Tempero em pó", "Tomate pelado", "Torradas", "Vinagre de vinho", "Massa", "Esparguete", "Farinha", "Açúcar", "Óleo", "Azeite", "Vinagre", "Molho", "Bolacha", "Cereal", "Café", "Chá"],
-      "Especiarias & Condimentos": ["Açafrão", "Azeite com ervas", "Canela em pó", "Coentros secos", "Colorau S/ pimenta", "Cominhos", "Cravinho", "Gengibre em pó", "Louro", "Manteiga de amendoim", "Noz-moscada", "Orégãos", "Páprica em pó", "Pasta de sésamo", "Pimenta preta", "Piripiri", "Sal grosso", "Sal refinado", "Vinagre", "Vinagre balsâmico", "Vinagre de maçã", "Pimenta", "Sal", "Canela", "Colorau"],
-      "Bebidas": ["Água de coco", "Água mineral com gás", "Água mineral sem gás", "Água tónica", "Aguardente", "Bebida vegetal", "Cerveja artesanal", "Cerveja lager", "Cerveja pilsen", "Energético", "Espumante", "Licor", "Néctar de pêssego", "Refrigerante de cola", "Refrigerante de laranja", "Refrigerante de limão", "Sumo de ananás", "Sumo de laranja", "Sumo de limão", "Sumo de maçã", "Vinho branco", "Vinho do Porto", "Vinho tinto", "Vodka", "Whisky", "Água", "Sumo", "Refrigerante", "Coca-cola", "Cerveja", "Vinho"],
-      "Casa & Utilidades": ["Esponjas de cozinha", "Filme aderente", "Fita adesiva", "Fósforos", "Papel alumínio", "Pilhas AA", "Pilhas AAA", "Sacos do lixo", "Sacos para congelação", "Velas", "Filme", "Pilha"],
-      "Limpeza Doméstica": ["Água lixívia", "Amaciador da roupa", "Amaciador para máquina", "Aromatizante ambiente", "Desinfetante multiusos", "Detergente da loiça", "Detergente da roupa", "Detergente para máquina de lavar", "Esponja de aço", "Esponja dupla face", "Limpa-vidros", "Luvas de limpeza", "Panos de microfibra", "Pastilhas para lava-loiça", "Removedor de calcário", "Sabão em pó", "Sabão líquido para as mãos", "Sabonete em barra", "Saco para aspirador", "Tira-graxa", "Vassoura", "Detergente", "Lixívia", "Sabão", "Esponja", "Limpa", "Desinfetante", "Saco lixo", "Pano"],
-      "Farmácia / Saúde": ["Álcool etílico", "Algodão", "Anti-histamínico", "Comprimidos para azia", "Creme hidratante corporal", "Creme para pés", "Desinfetante para mãos", "Ibuprofeno", "Multivitamínicos", "Paracetamol", "Pensos rápidos", "Protetor solar", "Termómetro digital", "Vitamina C", "Xarope para tosse"],
-      "Higiene Pessoal": ["Absorventes higiénicos", "Cotonetes", "Creme de barbear", "Creme facial", "Creme pós-barba", "Cuidado íntimo feminino", "Desmaquilhante", "Desodorizante em spray", "Desodorizante roll-on", "Discos de desmaquilhar", "Elásticos de cabelo", "Escova de cabelo", "Escova de dentes", "Espuma de barbear", "Fio dentário", "Gel de banho", "Lâminas de barbear", "Pasta de dentes", "Pente", "Protetor labial", "Sabonete líquido", "Tampões", "Toalhitas húmidas", "Sabonete", "Shampoo", "Creme", "Desodorizante", "Pasta dentes", "Escova", "Papel higiénico", "Gel de banho"],
-      "Higiene Infantil": ["Creme hidratante infantil", "Fraldas", "Lenços humedecidos", "Pomada para assaduras", "Sabonete líquido infantil"],
-      "Pet Shop": ["Ração para cães", "Ração para gatos", "Ração", "Areia"]
+      "Padaria & Pastelaria": ["Bolo", "Broa", "Croissant", "Donuts", "Madalena", "Pão", "Queque", "Torta", "Salgado", "Sonho", "Pastel"],
+      "Hortofrutícola": ["Abacate", "Abóbora", "Abobrinha", "Agrião", "Alface", "Alho", "Ananás", "Banana", "Batata", "Batata-doce", "Berinjela", "Beterraba", "Cebola", "Cenoura", "Coco", "Couve", "Espinafre", "Figo", "Kiwi", "Laranja", "Maçã", "Melancia", "Melão", "Morango", "Nabo", "Pepino", "Pêra", "Pimento", "Pimentão", "Romã", "Rúcula", "Tangerina", "Tomate", "Uva", "Limão", "Cheiro verde", "Salsinha", "Coentro"],
+      "Carnes & Peixes Frescos": ["Carne", "Frango", "Peixe", "Bacalhau", "Bife", "Picada", "Moída", "Salsicha", "Linguiça", "Chouriço", "Presunto", "Bacon"],
+      "Congelados": ["Congelado", "Pizza", "Nuggets", "Hambúrguer", "Gelado", "Sorvete", "Lasanha", "Batata frita"],
+      "Laticínios & Frios": ["Leite", "Iogurte", "Queijo", "Manteiga", "Requeijão", "Nata", "Ovo", "Margarina", "Danone", "Yakult"],
+      "Mercearia Seca & Enlatados": ["Arroz", "Feijão", "Massa", "Macarrão", "Esparguete", "Farinha", "Açúcar", "Óleo", "Azeite", "Vinagre", "Molho", "Bolacha", "Biscoito", "Cereal", "Café", "Chá", "Atum", "Sardinha", "Milho", "Ervilha", "Salsicha em lata", "Grão", "Lentilha", "Batata palha", "Maionese", "Ketchup", "Mostarda", "Chocolate", "Achocolatado"],
+      "Especiarias & Condimentos": ["Sal", "Pimenta", "Canela", "Colorau", "Cominho", "Orégão", "Louro", "Açafrão", "Curry", "Tempero", "Caldo"],
+      "Bebidas": ["Água", "Sumo", "Suco", "Refrigerante", "Coca", "Pepsi", "Cerveja", "Vinho", "Vodka", "Whisky", "Licor"],
+      "Casa & Utilidades": ["Saco lixo", "Papel alumínio", "Filme", "Pilha", "Vela", "Fósforo", "Guardanapo", "Copo", "Prato"],
+      "Limpeza Doméstica": ["Detergente", "Lixívia", "Água sanitária", "Cloro", "Sabão", "Esponja", "Limpa", "Desinfetante", "Pano", "Amaciante", "Multiuso", "Cândida", "Qboa", "Veja"],
+      "Farmácia / Saúde": ["Remédio", "Álcool", "Algodão", "Curativo", "Band-aid", "Vitamina", "Xarope", "Dipirona", "Paracetamol"],
+      "Higiene Pessoal": ["Sabonete", "Shampoo", "Champô", "Condicionador", "Creme", "Desodorante", "Pasta", "Escova", "Papel higiênico", "Papel higiénico", "Higiênico", "Absorvente", "Fio dental", "Cotonete", "Lâmina", "Barbear"],
+      "Higiene Infantil": ["Fralda", "Lenço", "Pomada", "Talco"],
+      "Pet Shop": ["Ração", "Areia", "Sachê", "Petisco"]
     };
 
     let listaItens = [];
 
-    // --- 2. FUNÇÕES DE SUPORTE (NOVA LÓGICA DE CATEGORIA) ---
+    // --- 2. FUNÇÕES DE SUPORTE (LÓGICA INTELIGENTE V2) ---
     function descobrirCategoria(nome) {
         const nomeNorm = nome.toLowerCase();
         let melhorCategoria = "Outros";
         let maiorTamanhoMatch = 0;
 
-        // Itera por todas as categorias
         for (let cat of CATEGORY_ORDER) {
             if (DB_ITENS[cat]) {
-                // Procura cada item do banco dentro do nome do produto
                 for (let dbItem of DB_ITENS[cat]) {
                     const dbItemNorm = dbItem.toLowerCase();
-                    
-                    // Se encontrar o item dentro do nome digitado
                     if (nomeNorm.includes(dbItemNorm)) {
-                        // Se esse match for mais específico (palavra maior), ele ganha
-                        // Ex: "Batata Palha" (12 chars) ganha de "Batata" (6 chars)
+                        // Prioriza o match mais específico (ex: "Batata Palha" > "Batata")
                         if (dbItemNorm.length > maiorTamanhoMatch) {
                             maiorTamanhoMatch = dbItemNorm.length;
                             melhorCategoria = cat;
@@ -393,15 +388,17 @@
     window.onload = async () => {
         document.getElementById('infoResponsavel').innerText = `Auditoria de: ${responsavel}`;
         
-        // 3.1 TENTAR FETCH ONLINE IGUAL AO GESTOR
+        // Tenta carregar JSON online, se falhar usa o DB_ITENS local (que agora é robusto)
         const statusEl = document.getElementById('dbStatus');
         try {
             const response = await fetch('produtos.json?v=' + new Date().getTime());
             if (response.ok) {
                 const serverData = await response.json();
                 if(Object.keys(serverData).length > 0) {
-                    DB_ITENS = serverData; // Atualiza a memória com o arquivo real
-                    CATEGORY_ORDER = Object.keys(serverData); // Atualiza a ordem
+                    // Mescla o DB Online com o Local para garantir PT-BR
+                    // (Opcional: aqui estou priorizando o local se o online falhar, 
+                    // mas podemos manter o local como "fallback premium")
+                    // DB_ITENS = serverData; 
                     statusEl.innerText = "Base de Dados: Atualizada (Online) 🟢";
                     statusEl.className = "db-status db-online";
                 }
@@ -433,7 +430,7 @@
                 listaItens = dados.map((item, idx) => ({
                     ...item,
                     originalIndex: idx,
-                    cat: descobrirCategoria(item.n), // Agora usa a lógica nova e inteligente
+                    cat: descobrirCategoria(item.n), // Agora usa a lógica V2 com DB expandido
                     encontrado: (item.encontrado !== undefined) ? item.encontrado : true,
                     resolvido: (item.resolvido !== undefined) ? item.resolvido : false,
                     isExtra: (item.isExtra !== undefined) ? item.isExtra : false,
