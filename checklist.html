@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lista de Compras Arretada</title>
+    <style>
+        :root {
+            --bg-color: #121212;
+            --card-bg: #1e1e1e;
+            --text-color: #e0e0e0;
+            --accent-color: #ff9800; /* Laranja meio abóbora */
+            --accent-hover: #f57c00;
+            --danger-color: #cf6679;
+            --success-color: #4caf50;
+            --input-bg: #2c2c2c;
+            --border-color: #333;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 600px;
+            background-color: var(--card-bg);
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        }
+
+        h1 {
+            text-align: center;
+            color: var(--accent-color);
+            margin-bottom: 20px;
+            font-size: 1.8rem;
+        }
+
+        /* --- Formulário de Adição --- */
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        input, select {
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            background-color: var(--input-bg);
+            color: var(--text-color);
+            font-size: 1rem;
+            outline: none;
+        }
+
+        input:focus, select:focus {
+            border-color: var(--accent-color);
+        }
+
+        /* Layout dos inputs */
+        #itemQty { width: 70px; }
+        #itemUnit { width: 80px; } /* Novo campo de unidade */
+        #itemName { flex-grow: 1; min-width: 120px; }
+        #itemPrice { width: 100px; }
+
+        button#addBtn {
+            background-color: var(--accent-color);
+            color: #fff;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.3s;
+            width: 100%; /* Botão full width em mobile fica melhor */
+        }
+
+        button#addBtn:hover {
+            background-color: var(--accent-hover);
+        }
+
+        /* --- Lista de Itens --- */
+        ul {
+            list-style: none;
+            margin-top: 20px;
+        }
+
+        li {
+            background-color: #252525;
+            margin-bottom: 10px;
+            padding: 15px;
+            border-radius: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-left: 5px solid var(--accent-color);
+            transition: transform 0.2s;
+        }
+
+        li:hover {
+            transform: translateX(5px);
+        }
+
+        .item-info {
+            display: flex;
+            flex-direction: column;
+            cursor: pointer; /* Indica que dá pra clicar pra editar */
+            flex-grow: 1;
+        }
+
+        .item-main {
+            font-size: 1.1rem;
+            font-weight: bold;
+        }
+
+        .item-sub {
+            font-size: 0.85rem;
+            color: #aaa;
+            margin-top: 4px;
+        }
+
+        .item-actions button {
+            background: none;
+            border: none;
+            color: var(--danger-color);
+            cursor: pointer;
+            font-size: 1.2rem;
+            padding: 5px;
+            margin-left: 10px;
+        }
+
+        /* --- Modal de Ajuste (Estilo da imagem enviada) --- */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background-color: #1a1e29; /* Tom azulado escuro igual imagem */
+            padding: 25px;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 400px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.8);
+            border: 1px solid #2c3e50;
+        }
+
+        .modal-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--accent-color);
+            margin-bottom: 15px;
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+
+        .modal-item-name {
+            font-size: 1.1rem;
+            color: #fff;
+            margin-bottom: 15px;
+            font-weight: bold;
+        }
+
+        .modal-label {
+            display: block;
+            margin-bottom: 5px;
+            color: #8fa1b3;
+            font-size: 0.9rem;
+        }
+
+        .modal-input {
+            width: 100%;
+            background-color: #12161f;
+            border: 1px solid #3a4b5c;
+            color: #fff;
+            padding: 10px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+        }
+        
+        /* Flex para quantidade e unidade no modal */
+        .modal-row {
+            display: flex;
+            gap: 10px;
+        }
+
+        .modal-buttons {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .btn-cancel {
+            background-color: #34495e;
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        .btn-confirm {
+            background-color: var(--accent-color);
+            color: #000; /* Texto preto no laranja pra contraste */
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        /* --- Balões de Alerta (Toast Personalizado) --- */
+        #toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 2000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .toast {
+            background-color: var(--card-bg);
+            color: #fff;
+            padding: 15px 20px;
+            border-radius: 50px; /* Formato balão */
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-width: 250px;
+            animation: slideIn 0.5s ease-out forwards;
+            border-left: 6px solid;
+            font-weight: 500;
+        }
+
+        .toast.success { border-color: var(--success-color); }
+        .toast.error { border-color: var(--danger-color); }
+        .toast.warning { border-color: var(--accent-color); }
+
+        @keyframes slideIn {
+            from { transform: translateX(120%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        @keyframes fadeOut {
+            to { opacity: 0; transform: translateY(-20px); }
+        }
+
+        /* Responsividade simples */
+        @media (max-width: 480px) {
+            .input-group input, .input-group select {
+                width: 48%; /* Em telas pequenas, divide em 2 colunas */
+            }
+            #itemName { width: 100%; }
+            #addBtn { width: 100%; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>🛒 Lista de Compras</h1>
+
+        <div class="input-group">
+            <input type="number" id="itemQty" placeholder="Qtd" min="1" value="1">
+            
+            <select id="itemUnit">
+                <option value="un">un</option>
+                <option value="kg">kg</option>
+                <option value="g">g</option>
+                <option value="cx">cx</option>
+                <option value="pct">pct</option>
+                <option value="l">l</option>
+                <option value="ml">ml</option>
+            </select>
+
+            <input type="text" id="itemName" placeholder="O que tá faltando? (ex: Batata)">
+            <input type="number" id="itemPrice" placeholder="Valor €" step="0.01">
+            <button id="addBtn" onclick="addItem()">Adicionar na Lista</button>
+        </div>
+
+        <ul id="shoppingList">
+            </ul>
+    </div>
+
+    <div id="toast-container"></div>
+
+    <div id="adjustModal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span>✏️</span> Ajustar Item
+            </div>
+            
+            <div id="modalItemName" class="modal-item-name">Nome do Produto</div>
+
+            <label class="modal-label">Quantidade & Unidade:</label>
+            <div class="modal-row">
+                <input type="number" id="modalQty" class="modal-input" placeholder="Qtd">
+                <select id="modalUnit" class="modal-input">
+                    <option value="un">un</option>
+                    <option value="kg">kg</option>
+                    <option value="g">g</option>
+                    <option value="cx">cx</option>
+                    <option value="pct">pct</option>
+                    <option value="l">l</option>
+                    <option value="ml">ml</option>
+                </select>
+            </div>
+
+            <label class="modal-label">Observação / Qtd Real:</label>
+            <input type="text" id="modalObs" class="modal-input" placeholder="Ex: Trouxe apenas 1">
+
+            <label class="modal-label">Preço Real Pago (€):</label>
+            <input type="number" id="modalPrice" class="modal-input" placeholder="0.00" step="0.01">
+
+            <div class="modal-buttons">
+                <button class="btn-cancel" onclick="closeModal()">Cancelar</button>
+                <button class="btn-confirm" onclick="confirmAdjust()">Confirmar</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Array principal da lista
+        let shoppingList = JSON.parse(localStorage.getItem('myShoppingList')) || [];
+        let currentEditIndex = -1;
+
+        // Função para carregar a lista ao iniciar
+        function renderList() {
+            const listElement = document.getElementById('shoppingList');
+            listElement.innerHTML = '';
+
+            shoppingList.forEach((item, index) => {
+                const li = document.createElement('li');
+                
+                // Formatação do preço se existir
+                const priceDisplay = item.price > 0 ? `€ ${parseFloat(item.price).toFixed(2)}` : '';
+                const totalDisplay = item.price > 0 ? `(Total: € ${(item.qty * item.price).toFixed(2)})` : '';
+                
+                // Exibição condicional da observação
+                const obsDisplay = item.obs ? `<br><span style="color: #ffcc00; font-size: 0.8em;">Obs: ${item.obs}</span>` : '';
+
+                li.innerHTML = `
+                    <div class="item-info" onclick="openModal(${index})">
+                        <div class="item-main">
+                            ${item.qty} ${item.unit} - ${item.name}
+                        </div>
+                        <div class="item-sub">
+                            ${priceDisplay} ${totalDisplay}
+                            ${obsDisplay}
+                        </div>
+                    </div>
+                    <div class="item-actions">
+                        <button onclick="deleteItem(${index})">🗑️</button>
+                    </div>
+                `;
+                listElement.appendChild(li);
+            });
+
+            // Salva no LocalStorage sempre que renderizar
+            localStorage.setItem('myShoppingList', JSON.stringify(shoppingList));
+        }
+
+        // Função para Adicionar Item
+        function addItem() {
+            const qtyInput = document.getElementById('itemQty');
+            const unitInput = document.getElementById('itemUnit'); // Captura a unidade
+            const nameInput = document.getElementById('itemName');
+            const priceInput = document.getElementById('itemPrice');
+
+            const qty = parseFloat(qtyInput.value);
+            const unit = unitInput.value;
+            const name = nameInput.value.trim();
+            const price = parseFloat(priceInput.value) || 0;
+
+            if (!name) {
+                showAlert("Ei! Escreva o nome do produto!", "error");
+                return;
+            }
+
+            const newItem = {
+                name: name,
+                qty: qty,
+                unit: unit, // Salvando a unidade no objeto
+                price: price,
+                obs: ''
+            };
+
+            shoppingList.push(newItem);
+            renderList();
+            
+            // Limpar campos e focar no nome
+            nameInput.value = '';
+            priceInput.value = '';
+            qtyInput.value = '1';
+            unitInput.value = 'un'; // Reseta unidade pra 'un'
+            nameInput.focus();
+
+            showAlert("Item adicionado com sucesso!", "success");
+        }
+
+        // Função para Deletar
+        function deleteItem(index) {
+            shoppingList.splice(index, 1);
+            renderList();
+            showAlert("Item removido!", "warning");
+        }
+
+        // --- Lógica do Modal ---
+
+        function openModal(index) {
+            currentEditIndex = index;
+            const item = shoppingList[index];
+
+            document.getElementById('modalItemName').innerText = item.name;
+            document.getElementById('modalQty').value = item.qty;
+            document.getElementById('modalUnit').value = item.unit || 'un'; // Carrega a unidade salva
+            document.getElementById('modalObs').value = item.obs || '';
+            document.getElementById('modalPrice').value = item.price || '';
+
+            document.getElementById('adjustModal').style.display = 'flex';
+        }
+
+        function closeModal() {
+            document.getElementById('adjustModal').style.display = 'none';
+            currentEditIndex = -1;
+        }
+
+        function confirmAdjust() {
+            if (currentEditIndex === -1) return;
+
+            const qty = parseFloat(document.getElementById('modalQty').value) || 1;
+            const unit = document.getElementById('modalUnit').value; // Pega a nova unidade se mudou
+            const obs = document.getElementById('modalObs').value;
+            const price = parseFloat(document.getElementById('modalPrice').value) || 0;
+
+            // Atualiza o objeto na lista
+            shoppingList[currentEditIndex].qty = qty;
+            shoppingList[currentEditIndex].unit = unit;
+            shoppingList[currentEditIndex].obs = obs;
+            shoppingList[currentEditIndex].price = price;
+
+            renderList();
+            closeModal();
+            showAlert("Item ajustado!", "success");
+        }
+
+        // Fechar modal se clicar fora
+        window.onclick = function(event) {
+            const modal = document.getElementById('adjustModal');
+            if (event.target == modal) {
+                closeModal();
+            }
+        }
+
+        // --- Função showAlert (Balões Coloridos) ---
+        function showAlert(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            
+            // Ícones baseados no tipo
+            let icon = '✅';
+            if (type === 'error') icon = '❌';
+            if (type === 'warning') icon = '⚠️';
+
+            toast.innerHTML = `<span>${icon}</span> <span>${message}</span>`;
+            
+            container.appendChild(toast);
+
+            // Remove automaticamente após 3 segundos
+            setTimeout(() => {
+                toast.style.animation = 'fadeOut 0.5s ease-out forwards';
+                toast.addEventListener('animationend', () => {
+                    toast.remove();
+                });
+            }, 3000);
+        }
+
+        // Inicializa
+        renderList();
+
+        // Atalho de teclado: Enter no campo de preço adiciona o item
+        document.getElementById('itemPrice').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                addItem();
+            }
+        });
+    </script>
+</body>
+</html>
