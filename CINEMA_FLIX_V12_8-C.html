@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Unitv Filmes - Premium Guide</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700;900&display=swap" rel="stylesheet">
+
+    <style>
+        /* --- ESTILO GERAL --- */
+        :root {
+            --netflix-red: #E50914;
+            --youtube-red: #FF0000;
+            --bg-black: #141414;
+            --bg-dark-grey: #181818;
+            --text-white: #fff;
+            --star-gold: #ffc107;
+            --tv-bezel: #2a2a2a;
+            --rating-green: #46d369;
+        }
+
+        body {
+            background-color: var(--bg-black);
+            color: var(--text-white);
+            font-family: 'Roboto', sans-serif;
+            margin: 0;
+            padding: 0;
+            overflow-x: hidden;
+        }
+
+        /* --- HEADER E NAV --- */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 4%;
+            background: linear-gradient(to bottom, rgba(0,0,0,0.9) 10%, rgba(0,0,0,0));
+            position: fixed;
+            width: 92%;
+            z-index: 1000;
+        }
+
+        .logo {
+            color: var(--netflix-red);
+            font-size: 2rem;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            text-shadow: 2px 2px 4px #000;
+        }
+
+        .secret-gear {
+            color: rgba(255, 255, 255, 0.05); /* Um pouco mais visível para você achar */
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 10px;
+            transition: color 0.3s;
+        }
+        .secret-gear:hover { color: rgba(255, 255, 255, 0.2); }
+
+        /* --- DESTAQUE (HERO SECTION) --- */
+        .hero {
+            height: 70vh;
+            background: url('https://image.tmdb.org/t/p/original/uDgy6hyPd82kOHh6I95FLtLnj6p.jpg') center/cover no-repeat;
+            display: flex;
+            align-items: center;
+            padding: 0 4%;
+            position: relative;
+        }
+
+        .hero::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            bottom: 0;
+            width: 100%;
+            height: 200px;
+            background: linear-gradient(to top, var(--bg-black), transparent);
+        }
+
+        .hero-content { z-index: 10; max-width: 600px; }
+        .hero-title { font-size: 3.5rem; font-weight: 900; margin-bottom: 10px; text-shadow: 2px 2px 10px rgba(0,0,0,0.8); }
+        .hero-desc { font-size: 1.1rem; margin-bottom: 20px; text-shadow: 1px 1px 5px rgba(0,0,0,0.8); }
+
+        .btn-hero {
+            background-color: var(--netflix-red);
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 4px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .btn-hero:hover { transform: scale(1.05); }
+
+        /* --- CARROSSEL --- */
+        .section-title { padding: 0 4%; margin-top: 10px; position: relative; z-index: 20; font-size: 1.4rem; font-weight: bold; margin-bottom: 10px; border-left: 5px solid var(--netflix-red); padding-left: 15px; margin-left: 4%; }
+        
+        .carousel-container { padding: 10px 4% 40px; position: relative; z-index: 20; display: flex; overflow-x: auto; gap: 15px; scroll-behavior: smooth; }
+        .carousel-container::-webkit-scrollbar { height: 5px; }
+        .carousel-container::-webkit-scrollbar-track { background: #000; }
+        .carousel-container::-webkit-scrollbar-thumb { background: #555; border-radius: 4px; }
+
+        .movie-card {
+            min-width: 160px; height: 240px; border-radius: 4px; position: relative;
+            transition: transform 0.3s ease, z-index 0.3s; cursor: pointer; background-color: #222; overflow: hidden; flex-shrink: 0;
+        }
+        .movie-card:hover { transform: scale(1.1); z-index: 50; box-shadow: 0 0 20px rgba(0,0,0,0.8); }
+        .movie-img { width: 100%; height: 100%; object-fit: cover; }
+
+        .movie-info-overlay {
+            position: absolute; bottom: 0; left: 0; width: 100%; padding: 10px;
+            background: linear-gradient(to top, rgba(0,0,0,0.9), transparent); opacity: 0; transition: opacity 0.3s;
+        }
+        .movie-card:hover .movie-info-overlay { opacity: 1; }
+        .movie-title { font-size: 0.85rem; font-weight: bold; margin-bottom: 5px; text-shadow: 1px 1px 2px black;}
+        
+        /* Badges */
+        .type-badge {
+            position: absolute; top: 5px; right: 5px; padding: 2px 6px; border-radius: 3px; font-size: 0.6rem; font-weight: bold; text-transform: uppercase; z-index: 2;
+        }
+        .badge-yt { background-color: var(--youtube-red); color: white; }
+        
+        /* NOTA (Badge Verde) */
+        .rating-badge {
+            position: absolute; top: 5px; left: 5px; 
+            background-color: var(--rating-green); color: #000; 
+            padding: 3px 8px; border-radius: 4px; 
+            font-size: 0.75rem; font-weight: 900; 
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.5);
+            z-index: 2;
+        }
+
+        /* --- TV RETRÔ STYLE --- */
+        .tv-container-wrapper { display: flex; justify-content: center; margin-bottom: 20px; }
+        .retro-tv {
+            position: relative; width: 100%; max-width: 500px; aspect-ratio: 4/3; 
+            background: var(--tv-bezel); border-radius: 20px; padding: 15px;
+            box-shadow: inset 0 0 20px #000, 0 10px 20px rgba(0,0,0,0.5); border: 3px solid #444;
+        }
+        .tv-screen-inner {
+            width: 100%; height: 100%; background: #000; border-radius: 50% / 10%; 
+            overflow: hidden; position: relative; border: 2px solid #111;
+        }
+        .tv-screen-inner iframe { width: 100%; height: 100%; border: none; }
+        .scanlines {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: repeating-linear-gradient(to bottom, transparent 0px, transparent 2px, rgba(0, 0, 0, 0.3) 3px, rgba(0, 0, 0, 0.3) 4px);
+            pointer-events: none; z-index: 5; opacity: 0.6;
+        }
+        .retro-tv::before {
+            content: ''; position: absolute; top: 15px; left: 15px; right: 15px; bottom: 15px;
+            background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, transparent 30%);
+            border-radius: 50% / 10%; pointer-events: none; z-index: 6;
+        }
+
+        /* --- MODAIS GERAIS --- */
+        .modal-overlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.85); 
+            z-index: 2000;
+            justify-content: center; align-items: center; backdrop-filter: blur(5px);
+        }
+        
+        /* CORREÇÃO: Z-INDEX MAIOR PARA O BLOCO DE NOTAS */
+        #notepadModal {
+            z-index: 3000 !important;
+        }
+
+        .modal-content {
+            background-color: var(--bg-dark-grey); padding: 30px; border-radius: 8px; width: 90%; max-width: 650px;
+            max-height: 90vh; overflow-y: auto; position: relative; box-shadow: 0 0 30px rgba(0,0,0,0.7); border: 1px solid #333;
+        }
+        .close-btn { position: absolute; top: 10px; right: 15px; font-size: 2rem; cursor: pointer; color: #aaa; z-index: 100;}
+        .close-btn:hover { color: var(--netflix-red); }
+
+        .admin-opinions-list { list-style: none; padding: 0; }
+        .admin-opinions-list li { 
+            background: rgba(255,255,255,0.05); padding: 8px; margin-bottom: 5px; border-radius: 4px; 
+            font-style: italic; color: #ddd; border-left: 3px solid #777;
+        }
+        .admin-rating-display { color: var(--star-gold); margin-left: 5px; letter-spacing: 2px; }
+
+        /* Botão Assistir Youtube */
+        .btn-watch-yt {
+            display: block; width: 100%; background-color: var(--youtube-red); color: white; text-align: center;
+            padding: 15px; font-weight: bold; font-size: 1.1rem; border-radius: 4px; text-decoration: none; margin-top: 15px;
+            transition: background 0.3s; border: none; cursor: pointer;
+        }
+        .btn-watch-yt:hover { background-color: #cc0000; }
+
+        /* --- ADMIN FORM --- */
+        .form-group { margin-bottom: 12px; }
+        .form-group label { display: block; margin-bottom: 4px; font-weight: bold; color: #ccc; font-size: 0.85rem;}
+        .form-group input, .form-group textarea, .form-group select {
+            width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #444;
+            background-color: #222; color: #fff; box-sizing: border-box; font-family: inherit;
+        }
+        .form-group input:focus, .form-group textarea:focus { border-color: var(--netflix-red); outline: none; }
+        .form-row { display: flex; gap: 10px; }
+        .form-row .form-group { flex: 1; }
+
+        .admin-actions { display: flex; gap: 10px; margin-top: 20px; flex-wrap: wrap;}
+        .btn-primary { background-color: var(--netflix-red); color: #fff; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        .btn-secondary { background-color: #444; color: #fff; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; }
+        .btn-blue { background-color: #007bff; color: #fff; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        .btn-danger { background-color: #b71c1c; color: #fff; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer;}
+
+        .admin-movie-list { margin-top: 20px; border-top: 2px solid #333; padding-top: 15px; }
+        .admin-item { display: flex; justify-content: space-between; align-items: center; background: #222; padding: 8px; margin-bottom: 5px; border-radius: 4px; border-left: 3px solid #555;}
+        .admin-item.yt-item { border-left-color: var(--youtube-red); }
+        .admin-item img { width: 30px; height: 30px; object-fit: cover; border-radius: 4px; margin-right: 10px; }
+
+        /* --- BLOCO DE NOTAS MODAL --- */
+        #notepadModal .modal-content { border-top-color: #007bff; border-width: 4px; }
+        #notepadTextarea { 
+            width: 100%; height: 300px; background: #222; border: 1px solid #444; 
+            color: #fff; padding: 15px; font-family: monospace; font-size: 1rem; resize: vertical;
+        }
+
+        /* --- AVALIAÇÃO USER --- */
+        .user-rating i { font-size: 1.5rem; cursor: pointer; color: #444; transition: color 0.2s; margin-right: 5px;}
+        .user-rating i.active, .user-rating i:hover { color: var(--star-gold); }
+
+        /* --- FOOTER (WHATSAPP) --- */
+        footer {
+            background: #080808; padding: 40px 4%; text-align: center; margin-top: 50px; border-top: 1px solid #222;
+        }
+        .whatsapp-link {
+            display: inline-flex; align-items: center; gap: 10px;
+            background-color: #25D366; color: white; padding: 12px 30px;
+            border-radius: 50px; text-decoration: none; font-weight: bold; font-size: 1.1rem;
+            transition: transform 0.2s, background-color 0.2s;
+            box-shadow: 0 4px 10px rgba(37, 211, 102, 0.3);
+        }
+        .whatsapp-link:hover { transform: scale(1.05); background-color: #20ba5a; }
+        .footer-text { color: #555; margin-top: 20px; font-size: 0.8rem; }
+
+        /* --- ALERTS --- */
+        #alert-container { position: fixed; top: 20px; right: 20px; z-index: 99999; display: flex; flex-direction: column; gap: 10px; }
+        .alert-balloon {
+            background: #222; color: #fff; padding: 15px 25px; border-radius: 4px; box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            font-weight: bold; display: flex; align-items: center; gap: 10px; animation: slideIn 0.5s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+            border-left: 4px solid var(--netflix-red);
+        }
+        .alert-warning { border-left-color: #ff9800; }
+
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        @keyframes slideOut { to { transform: translateX(100%); opacity: 0; } }
+
+        @media (max-width: 768px) {
+            .hero-title { font-size: 2rem; }
+            .modal-content { width: 92%; padding: 15px; margin: 10px; }
+            .movie-card { min-width: 140px; height: 210px; }
+            .form-row { flex-direction: column; gap: 0;}
+            .section-title { font-size: 1.2rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="logo">UNITV FILMES</div>
+        <div id="adminGear" class="secret-gear">
+            <i class="fas fa-cog"></i>
+        </div>
+    </header>
+
+    <div class="hero">
+        <div class="hero-content">
+            <h1 class="hero-title">O Melhor do Cinema</h1>
+            <p class="hero-desc">Confira os destaques da programação Unitv e filmes completos selecionados.</p>
+            <button class="btn-hero" onclick="scrollToFilms()">
+                <i class="fas fa-play-circle"></i> Ver Programação
+            </button>
+        </div>
+    </div>
+
+    <div id="alert-container"></div>
+
+    <h2 class="section-title">Em exibição na Unitv Filmes</h2>
+    <div class="carousel-container" id="unitvContainer"></div>
+
+    <h2 class="section-title" style="border-left-color: var(--youtube-red);">Filmes Completos no YouTube</h2>
+    <div class="carousel-container" id="youtubeContainer"></div>
+
+    <div class="modal-overlay" id="detailsModal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeDetailsModal()">&times;</span>
+            
+            <div class="tv-container-wrapper">
+                <div class="retro-tv">
+                    <div class="tv-screen-inner">
+                        <div class="scanlines"></div>
+                        <div id="trailerContainer"></div>
+                    </div>
+                </div>
+            </div>
+
+            <a href="#" target="_blank" id="btnWatchFull" class="btn-watch-yt" style="display:none;">
+                <i class="fab fa-youtube"></i> Assistir Filme Completo
+            </a>
+            
+            <br>
+            <h2 id="detailTitle" style="margin-top: 0; color: var(--netflix-red);">Título do Filme</h2>
+            <p><strong>Nota da Crítica:</strong> <span id="detailAdminRating" class="admin-rating-display"></span></p>
+            <p><strong>Elenco:</strong> <span id="detailCast" style="color: #bbb;"></span></p>
+            <p id="detailSummary" style="line-height: 1.6; color: #ccc; font-size: 0.95rem;"></p>
+
+            <div id="opinionsSection" style="display: none; margin-top: 20px; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 6px;">
+                <strong style="color: #fff;">O que dizem:</strong>
+                <ul id="detailOpinionsList" class="admin-opinions-list" style="margin-top: 10px;"></ul>
+            </div>
+            
+            <hr style="border-color: #333; margin: 25px 0;">
+            
+            <h3>Sua Avaliação:</h3>
+            <div class="user-rating" id="ratingStars">
+                <i class="fas fa-star" data-value="1"></i>
+                <i class="fas fa-star" data-value="2"></i>
+                <i class="fas fa-star" data-value="3"></i>
+                <i class="fas fa-star" data-value="4"></i>
+                <i class="fas fa-star" data-value="5"></i>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="notepadModal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="tryCloseNotepad()">&times;</span>
+            <h2 style="color: #007bff;">Bloco de Notas do Diretor 📝</h2>
+            <p style="color: #ccc; font-size: 0.9rem;">Rascunhe ideias, links ou lembretes.</p>
+            <textarea id="notepadTextarea" placeholder="Digite suas anotações aqui..."></textarea>
+            <div class="admin-actions" style="justify-content: flex-end;">
+                <button class="btn-primary" onclick="saveNotepad()">Salvar Agora</button>
+                <button class="btn-secondary" onclick="tryCloseNotepad()">Fechar</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="adminModal">
+        <div class="modal-content" style="border-top: 4px solid var(--netflix-red);">
+            <span class="close-btn" onclick="closeAdminModal()">&times;</span>
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <h2 style="color: var(--netflix-red); margin:0;">Painel de Controle</h2>
+                <button class="btn-blue" onclick="openNotepadModal()" style="font-size:0.8rem; padding: 5px 10px;">
+                    <i class="fas fa-edit"></i> Bloco de Notas
+                </button>
+            </div>
+            <br>
+            
+            <form id="movieForm">
+                <input type="hidden" id="editId">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Categoria</label>
+                        <select id="inputCategory" onchange="toggleWatchField()">
+                            <option value="unitv">Catálogo Unitv</option>
+                            <option value="youtube">Filme Completo (YouTube)</option>
+                        </select>
+                    </div>
+                     <div class="form-group">
+                        <label>Agendar</label>
+                        <input type="datetime-local" id="inputSchedule" style="color-scheme: dark;">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Título</label>
+                    <input type="text" id="inputTitle" required placeholder="Ex: O Poderoso Chefão">
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                       <label>URL Poster</label>
+                       <input type="url" id="inputImg" required placeholder="https://...">
+                   </div>
+                   <div class="form-group">
+                       <label>Link Trailer (YouTube)</label>
+                       <input type="url" id="inputTrailer" required placeholder="Cole o link aqui...">
+                       <small style="color: #666; font-size: 0.7rem;">Aceita qualquer link do YouTube</small>
+                   </div>
+                </div>
+
+                <div class="form-group" id="watchLinkGroup" style="display: none; background: #330000; padding: 10px; border-radius: 4px; border: 1px dashed var(--youtube-red);">
+                    <label style="color: var(--youtube-red);">Link para Assistir (Link Direto)</label>
+                    <input type="url" id="inputWatchLink" placeholder="https://www.youtube.com/watch?v=...">
+                </div>
+
+                <div class="form-group">
+                    <label>Elenco</label>
+                    <input type="text" id="inputCast" placeholder="Atores...">
+                </div>
+                <div class="form-group">
+                    <label>Sinopse</label>
+                    <textarea id="inputSummary" rows="3" placeholder="Resumo..."></textarea>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Nota Crítica</label>
+                        <select id="inputAdminRating">
+                            <option value="0">N/A</option>
+                            <option value="1">⭐ 1 (2.0)</option>
+                            <option value="2">⭐⭐ 2 (4.0)</option>
+                            <option value="3">⭐⭐⭐ 3 (6.0)</option>
+                            <option value="4">⭐⭐⭐⭐ 4 (8.0)</option>
+                            <option value="5">⭐⭐⭐⭐⭐ 5 (10.0)</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="flex: 2;">
+                        <label>Comentários (Máx 5)</label>
+                        <textarea id="inputOpinions" rows="4" placeholder="Um por linha..."></textarea>
+                    </div>
+                </div>
+
+                <div class="admin-actions">
+                    <button type="submit" class="btn-primary" id="saveBtn">Publicar</button>
+                    <button type="button" class="btn-secondary" onclick="resetForm()">Limpar</button>
+                </div>
+            </form>
+
+            <h3>Catálogo</h3>
+            <div class="admin-movie-list" id="adminList"></div>
+        </div>
+    </div>
+
+    <footer>
+        <a href="https://whatsapp.com/channel/0029VbC56p4JJhzYEmaMSC45" target="_blank" class="whatsapp-link">
+            <i class="fab fa-whatsapp" style="font-size: 1.5rem;"></i>
+            Canal de Sugestões
+        </a>
+        <p class="footer-text">© 2023 Unitv Guide. Feito por quem entende de filme.</p>
+    </footer>
+
+    <script>
+        // --- DADOS INICIAIS ---
+        const defaultMovies = [
+            { 
+                id: 1, category: 'unitv', title: "Oppenheimer", img: "https://image.tmdb.org/t/p/w500/8Gxv8gSFCU0XGDykEGv7zR1n2ua.jpg", cast: "Cillian Murphy, Emily Blunt", summary: "A história do cientista americano J. Robert Oppenheimer e o seu papel no desenvolvimento da bomba atômica.", rating: 5, schedule: null,
+                trailerUrl: "https://www.youtube.com/watch?v=uYPbbksJxIg", // Trailer Oficial Universal
+                adminRating: 5, opinions: ["Obra prima visual.", "Magnífico."], watchLink: ""
+            }
+        ];
+
+        // SISTEMA ANTI-CRASH (TELA BRANCA)
+        let movies = [];
+        try {
+            movies = JSON.parse(localStorage.getItem('unitvMoviesData')) || defaultMovies;
+        } catch (error) {
+            console.error("Erro ao carregar dados salvos. Resetando...", error);
+            movies = defaultMovies; // Reseta para evitar tela branca
+            localStorage.removeItem('unitvMoviesData'); // Limpa dados corrompidos
+        }
+        
+        const maxSlots = 24; 
+        let gearClicks = 0;
+        let gearTimer = null;
+        const gearBtn = document.getElementById('adminGear');
+
+        window.addEventListener('DOMContentLoaded', () => {
+            renderMovies();
+            setupGearSecret();
+        });
+
+        // --- ENGRENAGEM SECRETA ---
+        function setupGearSecret() {
+            if(!gearBtn) return;
+            gearBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                gearClicks++;
+                if (gearClicks === 1) {
+                    gearTimer = setTimeout(() => { gearClicks = 0; }, 2500);
+                }
+                if (gearClicks === 5) {
+                    clearTimeout(gearTimer);
+                    gearClicks = 0;
+                    openAdminModal();
+                    showAlert("Painel Admin Aberto! 🛠️", "success");
+                }
+            });
+        }
+
+        // --- ALERTS COM BALÕES ---
+        function showAlert(msg, type = 'info') {
+            const container = document.getElementById('alert-container');
+            if(!container) return;
+            const balloon = document.createElement('div');
+            balloon.className = 'alert-balloon';
+            if (type === 'warning') balloon.classList.add('alert-warning');
+            
+            let icon = 'fa-info-circle';
+            if (type === 'success') icon = 'fa-check-circle';
+            if (type === 'error') icon = 'fa-exclamation-circle';
+            if (type === 'warning') icon = 'fa-exclamation-triangle';
+
+            balloon.innerHTML = `<i class="fas ${icon}"></i> <span>${msg}</span>`;
+            
+            if(type === 'success') balloon.style.borderLeftColor = '#2ecc71';
+            if(type === 'error') balloon.style.borderLeftColor = '#e74c3c';
+            if(type === 'warning') balloon.style.borderLeftColor = '#ff9800';
+
+            container.appendChild(balloon);
+            setTimeout(() => {
+                balloon.style.animation = 'slideOut 0.5s forwards';
+                setTimeout(() => balloon.remove(), 500);
+            }, 3000);
+        }
+
+        // --- NOVA LÓGICA DE EXTRAÇÃO DE ID (BLINDADA) ---
+        function getYoutubeId(url) {
+            if (!url) return null;
+            let videoId = null;
+            try {
+                // Tenta extrair ID de URLs comuns
+                if (url.includes('v=')) {
+                    videoId = url.split('v=')[1];
+                    const ampersandPosition = videoId.indexOf('&');
+                    if (ampersandPosition !== -1) {
+                        videoId = videoId.substring(0, ampersandPosition);
+                    }
+                } else if (url.includes('youtu.be/')) {
+                    videoId = url.split('youtu.be/')[1];
+                    const queryPosition = videoId.indexOf('?');
+                    if (queryPosition !== -1) {
+                        videoId = videoId.substring(0, queryPosition);
+                    }
+                } else if (url.includes('/embed/')) {
+                    videoId = url.split('/embed/')[1];
+                    const queryPosition = videoId.indexOf('?');
+                    if (queryPosition !== -1) {
+                        videoId = videoId.substring(0, queryPosition);
+                    }
+                }
+            } catch (e) {
+                console.error("Erro URL:", e);
+                return null;
+            }
+            return videoId;
+        }
+
+        // --- RENDERIZAÇÃO HOME ---
+        function renderMovies() {
+            const containerUnitv = document.getElementById('unitvContainer');
+            const containerYoutube = document.getElementById('youtubeContainer');
+            if(!containerUnitv || !containerYoutube) return;
+
+            containerUnitv.innerHTML = '';
+            containerYoutube.innerHTML = '';
+            const now = new Date();
+            const visibleMovies = movies.filter(m => !m.schedule || new Date(m.schedule) <= now);
+
+            if (visibleMovies.length === 0) {
+                containerUnitv.innerHTML = '<p style="padding: 20px; opacity: 0.7;">Nada por aqui.</p>'; return;
+            }
+
+            visibleMovies.forEach((movie) => {
+                const card = document.createElement('div');
+                card.className = 'movie-card';
+                card.onclick = () => openDetails(movie.id);
+
+                const cat = movie.category || 'unitv';
+                const badge = cat === 'youtube' ? `<div class="type-badge badge-yt">YouTube</div>` : ``;
+                
+                let ratingBadge = '';
+                if(movie.adminRating && movie.adminRating > 0) {
+                    const finalScore = (movie.adminRating * 2).toFixed(1);
+                    ratingBadge = `<div class="rating-badge">Nota: ${finalScore}</div>`;
+                }
+
+                card.innerHTML = `
+                    ${badge}
+                    ${ratingBadge}
+                    <img src="${movie.img}" class="movie-img" alt="${movie.title}" onerror="this.src='https://via.placeholder.com/160x240?text=Sem+Imagem'">
+                    <div class="movie-info-overlay"><div class="movie-title">${movie.title}</div></div>
+                `;
+
+                if(cat === 'youtube') containerYoutube.appendChild(card);
+                else containerUnitv.appendChild(card);
+            });
+        }
+
+        function scrollToFilms() { 
+            const el = document.querySelector('.section-title');
+            if(el) el.scrollIntoView({ behavior: 'smooth' }); 
+        }
+
+        // --- MODAL DETALHES ---
+        let currentMovieId = null;
+        function openDetails(id) {
+            const movie = movies.find(m => m.id === id);
+            if(!movie) return;
+            currentMovieId = id;
+            document.getElementById('detailTitle').innerText = movie.title;
+            document.getElementById('detailCast').innerText = movie.cast;
+            document.getElementById('detailSummary').innerText = movie.summary;
+
+            // --- LÓGICA DO TRAILER ATUALIZADA ---
+            const trailerContainer = document.getElementById('trailerContainer');
+            const videoId = getYoutubeId(movie.trailerUrl);
+            
+            if (videoId) {
+                // Usamos youtube-nocookie
+                const safeUrl = `https://www.youtube-nocookie.com/embed/${videoId}?rel=0&modestbranding=1&autohide=1&mute=1&showinfo=0&controls=1&autoplay=1`; 
+                trailerContainer.innerHTML = `<iframe src="${safeUrl}" title="Player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
+            } else {
+                trailerContainer.innerHTML = '<div style="display:flex;height:100%;align-items:center;justify-content:center;color:#555;text-align:center;padding:20px;">Vídeo indisponível ou Link quebrado.</div>';
+            }
+
+            const btnWatch = document.getElementById('btnWatchFull');
+            const cat = movie.category || 'unitv';
+            
+            if(cat === 'youtube' && movie.watchLink) {
+                btnWatch.style.display = 'block';
+                btnWatch.href = movie.watchLink;
+                btnWatch.innerHTML = '<i class="fab fa-youtube"></i> Assistir Filme Completo';
+            } else if (videoId) {
+                // FALLBACK
+                btnWatch.style.display = 'block';
+                btnWatch.href = `https://www.youtube.com/watch?v=${videoId}`;
+                btnWatch.innerHTML = '<i class="fab fa-youtube"></i> Ver no YouTube (Externo)';
+            } else {
+                btnWatch.style.display = 'none';
+            }
+
+            const adminRatingContainer = document.getElementById('detailAdminRating');
+            let adminStarsHTML = '';
+             if(movie.adminRating > 0) {
+                for(let i=1; i<=5; i++) adminStarsHTML += `<i class="fas fa-star ${i <= movie.adminRating ? '' : 'far'}" style="font-size:0.9rem;"></i>`;
+                 adminRatingContainer.innerHTML = adminStarsHTML;
+            } else { adminRatingContainer.innerHTML = '<span style="color:#777;">N/A</span>'; }
+            
+            const opinionsSection = document.getElementById('opinionsSection');
+            const opinionsList = document.getElementById('detailOpinionsList');
+            opinionsList.innerHTML = '';
+            if(movie.opinions && movie.opinions.length > 0) {
+                movie.opinions.forEach(op => {
+                    const li = document.createElement('li'); li.innerText = `"${op}"`; opinionsList.appendChild(li);
+                });
+                opinionsSection.style.display = 'block';
+            } else { opinionsSection.style.display = 'none'; }
+
+            renderRatingStars(movie.rating);
+            document.getElementById('detailsModal').style.display = 'flex';
+        }
+
+        function closeDetailsModal() {
+            document.getElementById('detailsModal').style.display = 'none';
+            document.getElementById('trailerContainer').innerHTML = '';
+            currentMovieId = null;
+        }
+
+        function renderRatingStars(rating) {
+            const stars = document.querySelectorAll('#ratingStars i');
+            stars.forEach(star => {
+                const val = parseInt(star.getAttribute('data-value'));
+                star.classList.toggle('active', val <= rating);
+                star.onclick = () => setRating(val);
+            });
+        }
+        function setRating(val) {
+            if(!currentMovieId) return;
+            const idx = movies.findIndex(m => m.id === currentMovieId);
+            if(idx > -1) {
+                movies[idx].rating = val;
+                saveData(); renderRatingStars(val);
+                showAlert(`Voto registrado: ${val} estrelas!`, "success");
+            }
+        }
+
+        // --- BLOCO DE NOTAS ---
+        function openNotepadModal() {
+            document.getElementById('notepadModal').style.display = 'flex';
+            const savedNotes = localStorage.getItem('unitvAdminNotes') || '';
+            document.getElementById('notepadTextarea').value = savedNotes;
+        }
+
+        function tryCloseNotepad() {
+            const currentText = document.getElementById('notepadTextarea').value;
+            const savedText = localStorage.getItem('unitvAdminNotes') || '';
+
+            if (currentText !== savedText) {
+                showAlert("Salve suas anotações antes de sair!", "warning");
+            } else {
+                document.getElementById('notepadModal').style.display = 'none';
+            }
+        }
+
+        function saveNotepad() {
+            const text = document.getElementById('notepadTextarea').value;
+            localStorage.setItem('unitvAdminNotes', text);
+            showAlert("Anotações salvas! 📝", "success");
+        }
+
+        // --- ADMIN ---
+        function toggleWatchField() {
+            const cat = document.getElementById('inputCategory').value;
+            const group = document.getElementById('watchLinkGroup');
+            group.style.display = cat === 'youtube' ? 'block' : 'none';
+            if(cat !== 'youtube') document.getElementById('inputWatchLink').value = '';
+        }
+
+        function openAdminModal() {
+            document.getElementById('adminModal').style.display = 'flex';
+            renderAdminList();
+            resetForm();
+        }
+        function closeAdminModal() { document.getElementById('adminModal').style.display = 'none'; }
+
+        function renderAdminList() {
+            const list = document.getElementById('adminList');
+            list.innerHTML = '';
+            movies.forEach(m => {
+                const div = document.createElement('div');
+                const cat = m.category || 'unitv';
+                div.className = `admin-item ${cat === 'youtube' ? 'yt-item' : ''}`;
+                const catLabel = cat === 'youtube' ? '<span style="color:var(--youtube-red); font-size:0.7rem;">[YOUTUBE]</span>' : '<span style="color:#007bff; font-size:0.7rem;">[UNITV]</span>';
+                div.innerHTML = `
+                    <div style="display:flex; align-items:center; flex-grow:1;">
+                        <img src="${m.img}" onerror="this.src='https://via.placeholder.com/30x30'">
+                        <div class="admin-item-info">
+                            <strong>${m.title}</strong> ${catLabel}
+                        </div>
+                    </div>
+                    <div>
+                        <button class="btn-secondary" style="padding:5px 8px;" onclick="editMovie(${m.id})"><i class="fas fa-edit"></i></button>
+                        <button class="btn-danger" onclick="deleteMovie(${m.id})"><i class="fas fa-trash"></i></button>
+                    </div>
+                `;
+                list.appendChild(div);
+            });
+        }
+
+        document.getElementById('movieForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const editId = document.getElementById('editId').value;
+            const category = document.getElementById('inputCategory').value;
+            const title = document.getElementById('inputTitle').value;
+            const img = document.getElementById('inputImg').value;
+            
+            const trailerUrl = document.getElementById('inputTrailer').value;
+            const watchLink = document.getElementById('inputWatchLink').value;
+            
+            const adminRating = parseInt(document.getElementById('inputAdminRating').value) || 0;
+            const opinionsRaw = document.getElementById('inputOpinions').value;
+            const opinions = opinionsRaw.split('\n').map(s => s.trim()).filter(s => s !== '').slice(0, 5);
+
+            const cast = document.getElementById('inputCast').value;
+            const summary = document.getElementById('inputSummary').value;
+            const schedule = document.getElementById('inputSchedule').value || null;
+
+            if (!title || !img || !trailerUrl) { showAlert("Preencha Título, Poster e Trailer.", "error"); return; }
+            if (category === 'youtube' && !watchLink) { showAlert("Link Youtube obrigatório.", "error"); return; }
+
+            const movieData = { category, title, img, trailerUrl, watchLink, cast, summary, schedule, adminRating, opinions };
+
+            if (editId) {
+                const idx = movies.findIndex(m => m.id == editId);
+                if (idx > -1) { movies[idx] = { ...movies[idx], ...movieData }; showAlert("Atualizado!", "success"); }
+            } else {
+                movies.push({ id: Date.now(), rating: 0, ...movieData }); showAlert("Publicado!", "success");
+            }
+            saveData(); renderMovies(); renderAdminList(); resetForm();
+        });
+
+        function editMovie(id) {
+            const m = movies.find(x => x.id === id);
+            if(m) {
+                document.getElementById('editId').value = m.id;
+                document.getElementById('inputCategory').value = m.category || 'unitv';
+                toggleWatchField();
+                
+                document.getElementById('inputTitle').value = m.title;
+                document.getElementById('inputImg').value = m.img;
+                document.getElementById('inputTrailer').value = m.trailerUrl || ''; 
+                document.getElementById('inputWatchLink').value = m.watchLink || '';
+                
+                document.getElementById('inputAdminRating').value = m.adminRating || 0;
+                document.getElementById('inputOpinions').value = m.opinions ? m.opinions.join('\n') : '';
+                document.getElementById('inputCast').value = m.cast;
+                document.getElementById('inputSummary').value = m.summary;
+                document.getElementById('inputSchedule').value = m.schedule ? m.schedule : '';
+                document.getElementById('saveBtn').innerText = "Salvar Alterações";
+                document.getElementById('inputTitle').focus();
+            }
+        }
+
+        function deleteMovie(id) {
+            if(confirm("Excluir filme?")) {
+                movies = movies.filter(m => m.id !== id);
+                saveData(); renderMovies(); renderAdminList();
+                showAlert("Excluído.", "info");
+            }
+        }
+
+        function resetForm() {
+            document.getElementById('movieForm').reset();
+            document.getElementById('editId').value = '';
+            document.getElementById('saveBtn').innerText = "Publicar";
+            toggleWatchField();
+        }
+        function saveData() { localStorage.setItem('unitvMoviesData', JSON.stringify(movies)); }
+
+        window.onclick = function(event) {
+            if (event.target == document.getElementById('detailsModal')) closeDetailsModal();
+            if (event.target == document.getElementById('adminModal')) closeAdminModal();
+            // Bloco de Notas fecha clicando fora apenas se não houver mudanças não salvas
+            if (event.target == document.getElementById('notepadModal')) tryCloseNotepad();
+        }
+    </script>
+</body>
+</html>
