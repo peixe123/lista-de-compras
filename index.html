@@ -1,0 +1,1049 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Lista de Compras V63 - WhatsApp Layout</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.4.4/lz-string.min.js"></script>
+  <style>
+    /* =========================================
+       CSS BASE & RESET
+       ========================================= */
+    * { box-sizing: border-box; margin: 0; padding: 0; outline: none; }
+    
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #0f172a; /* Slate 900 */
+      color: #e5e7eb;      /* Gray 200 */
+      padding: 20px;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 8px; }
+    ::-webkit-scrollbar-track { background: #1e293b; }
+    ::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
+
+    h1 {
+      text-align: center; margin-bottom: 20px; font-size: 24px;
+      display: flex; justify-content: center; align-items: center; gap: 12px;
+      color: #f8fafc; text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+    }
+    
+    .status-dot {
+        width: 14px; height: 14px; border-radius: 50%; background: #64748b; display: inline-block;
+        box-shadow: 0 0 8px rgba(0,0,0,0.5); transition: background 0.3s;
+    }
+    .status-dot.online { background: #22c55e; box-shadow: 0 0 15px #22c55e; }
+    .status-dot.offline { background: #ef4444; box-shadow: 0 0 10px #ef4444; }
+
+    /* CONTAINER */
+    .app {
+      max-width: 650px; margin: 0 auto; background: #1e293b; 
+      border-radius: 16px; padding: 20px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+      position: relative; border: 1px solid #334155;
+    }
+
+    .btn-fechar-app {
+        position: absolute; top: -12px; right: -12px; width: 34px; height: 34px;
+        background: linear-gradient(135deg, #ef4444, #b91c1c);
+        color: white; border: 3px solid #0f172a; border-radius: 50%;
+        font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.5); z-index: 100;
+    }
+
+    .app-closed-screen { display: none; text-align: center; margin-top: 80px; }
+    .btn-reabrir {
+        background: linear-gradient(135deg, #22c55e, #15803d); color: white; padding: 18px 40px;
+        border: none; border-radius: 50px; font-size: 18px; font-weight: 800; cursor: pointer;
+    }
+
+    /* FORMULÁRIOS */
+    label { font-size: 12px; display: block; margin-bottom: 6px; color: #94a3b8; font-weight: 600; text-transform: uppercase; }
+    
+    input, select, textarea { 
+        width: 100%; padding: 10px 12px; border-radius: 8px; border: 2px solid #334155; 
+        margin-bottom: 12px; font-size: 15px; height: 42px;
+        background: #0f172a; color: #f8fafc;
+    }
+    input:focus, select:focus, textarea:focus { border-color: #38bdf8; }
+    input:disabled, select:disabled { background: #1e293b; color: #64748b; border-color: #334155; cursor: not-allowed; opacity: 0.7; }
+
+    .linha { display: grid; grid-template-columns: 70px 80px 1fr 100px; gap: 10px; margin-bottom: 10px; align-items: end; }
+    @media (max-width: 500px) { .linha { grid-template-columns: 60px 70px 1fr 90px; gap: 6px; } }
+
+    /* BOTÕES */
+    button { border: none; padding: 10px 16px; border-radius: 8px; font-size: 14px; font-weight: bold; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 5px; }
+    
+    .btn-add { background: linear-gradient(135deg, #22c55e, #16a34a); color: white; width: 100%; margin-bottom: 20px; height: 45px; font-size: 16px; }
+    .btn-add:disabled { opacity: 0.5; cursor: not-allowed; background: #334155; }
+    .btn-add.editando { background: linear-gradient(135deg, #eab308, #ca8a04); color: #422006; } 
+    
+    .btn-gerar { background: linear-gradient(135deg, #38bdf8, #0284c7); color: white; width: 100%; margin-top: 10px; text-transform: uppercase; font-weight: 800; height: 50px; font-size: 16px; }
+    .btn-gerar:disabled { opacity: 0.5; cursor: not-allowed; background: #1e293b; color: #475569; }
+
+    .botoes-extras { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
+    .btn-extra { font-size: 13px; padding: 12px; color: white; transition: filter 0.2s; }
+    .btn-extra:hover { filter: brightness(1.1); }
+    
+    .btn-historico { background: linear-gradient(135deg, #f97316, #ea580c); }
+    .btn-importar { background: linear-gradient(135deg, #8b5cf6, #7c3aed); }
+    .btn-gerenciar { background: linear-gradient(135deg, #6366f1, #4f46e5); }
+    .btn-nova-lista { background: linear-gradient(135deg, #06b6d4, #0891b2); }
+    
+    /* BOTÃO NOVO: PINGO DOCE */
+    .btn-pingo { 
+        background: linear-gradient(135deg, #0f172a, #334155); 
+        color: #4ade80; /* Verde neon Pingo Doce */
+        border: 1px solid #4ade80;
+        grid-column: span 2; /* Ocupa a largura toda */
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-weight: 900;
+        box-shadow: 0 4px 10px rgba(74, 222, 128, 0.1);
+    }
+    .btn-pingo:hover {
+        background: #4ade80;
+        color: #0f172a;
+        box-shadow: 0 0 15px rgba(74, 222, 128, 0.4);
+    }
+
+    /* LISTA */
+    ul { list-style: none; margin-top: 10px; }
+    li { display: flex; justify-content: space-between; align-items: center; background: #0f172a; border: 1px solid #334155; padding: 10px 14px; border-radius: 8px; font-size: 15px; margin-bottom: 6px; cursor: pointer; }
+    
+    .item-texto { flex-grow: 1; display: flex; flex-direction: column; }
+    .item-nome { font-weight: 500; color: #f1f5f9; }
+    .item-detalhe-preco { font-size: 12px; color: #4ade80; margin-top: 3px; font-weight: 600; }
+
+    .btn-remover { background: rgba(239, 68, 68, 0.15); color: #fca5a5; font-size: 14px; padding: 6px 10px; margin-left: 10px; border-radius: 6px; }
+    .btn-remover:hover { background: #ef4444; color: white; }
+
+    .resumo { margin-top: 15px; padding: 10px; background: rgba(15, 23, 42, 0.5); border-radius: 8px; font-size: 14px; color: #a5b4fc; display: flex; justify-content: space-between; font-weight: bold; border: 1px dashed #334155; }
+
+    /* SAÍDA (VITRINE) */
+    .output-wrapper { position: relative; margin-top: 20px; }
+    .area-botoes-copiar { display: none; flex-wrap: wrap; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+    .grupo-acoes { display: flex; gap: 8px; }
+    
+    .btn-pill { font-weight: 900; text-transform: uppercase; border-radius: 30px; padding: 8px 16px; font-size: 11px; border: 1px solid rgba(255,255,255,0.1); color: #000; cursor: pointer; transition: transform 0.2s; }
+    .btn-pill:hover { transform: scale(1.05); }
+    
+    .btn-link-zap { background: #25D366; color: #064e3b; }
+    .btn-copiar-laranja { background: #fb923c; color: #431407; }
+    .btn-alterar-roxo { background: #c084fc; color: #3b0764; }
+    .btn-lixeira-dash { background: #ef4444; color: white; width: 35px; padding: 0; display: flex; align-items: center; justify-content: center; font-size: 16px; }
+
+    textarea#saida { width: 100%; height: 320px; resize: vertical; font-family: 'Consolas', 'Monaco', monospace; white-space: pre; background: #f8fafc; color: #0f172a; border: 3px solid #38bdf8; padding: 15px; font-size: 13px; border-radius: 10px; }
+
+    /* TOASTS */
+    .toast-container { position: fixed; bottom: 30px; right: 30px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; align-items: flex-end; pointer-events: none; }
+    .toast { pointer-events: auto; padding: 14px 20px; border-radius: 12px; font-size: 14px; font-weight: 600; box-shadow: 0 8px 20px rgba(0,0,0,0.4); animation: balloonPop 0.5s, fadeOut 0.5s ease-in 5.5s forwards; color: #fff; max-width: 300px; border: 1px solid rgba(255,255,255,0.1); }
+    .toast.erro { background: linear-gradient(135deg, #ef4444, #dc2626); border-left: 6px solid #7f1d1d; }
+    .toast.sucesso { background: linear-gradient(135deg, #22c55e, #16a34a); border-left: 6px solid #14532d; }
+    .toast.aviso { background: linear-gradient(135deg, #f59e0b, #d97706); border-left: 6px solid #78350f; }
+    .toast.info { background: linear-gradient(135deg, #3b82f6, #2563eb); border-left: 6px solid #1e3a8a; }
+
+    @keyframes balloonPop { 0% { transform: scale(0.5) translateY(50px); opacity: 0; } 100% { transform: scale(1) translateY(0); opacity: 1; } }
+    @keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
+
+    /* MODAIS */
+    .modal-backdrop { display: none; position: fixed; inset: 0; background: rgba(15,23,42,0.9); z-index: 1000; justify-content: center; align-items: center; backdrop-filter: blur(5px); }
+    .modal-backdrop.open { display: flex; }
+
+    .modal { background: #1e293b; border-radius: 16px; width: 90%; max-width: 700px; max-height: 85vh; overflow-y: auto; padding: 24px; box-shadow: 0 20px 50px rgba(0,0,0,0.5); border: 1px solid #334155; display: flex; flex-direction: column; }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #334155; padding-bottom: 10px;}
+    .modal-close { cursor: pointer; font-size: 24px; padding: 4px 12px; border-radius: 50%; background: #334155; color: #cbd5e1; }
+
+    /* Itens Personalizados */
+    .item-personalizado { display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid #334155; }
+    .actions-personalizado { display: flex; gap: 10px; }
+    .btn-trash-item { background: none; border: none; font-size: 16px; cursor: pointer; }
+    .btn-edit-item { background: none; border: none; font-size: 16px; cursor: pointer; }
+
+    /* HISTÓRICO */
+    .historico-item { 
+        border: 1px solid #334155; border-radius: 12px; padding: 16px; margin-bottom: 12px; 
+        background: #0f172a; font-size: 13px;
+    }
+    .historico-top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; border-bottom: 1px dashed #334155; padding-bottom: 8px; }
+    .historico-actions { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-top: 12px; }
+    .historico-actions button { width: 100%; border-radius: 8px; }
+
+    /* ESTRELAS INTERATIVAS */
+    .star-wrapper { display: flex; gap: 6px; background: rgba(0,0,0,0.2); padding: 5px 10px; border-radius: 20px; border: 1px solid #334155; }
+    .star-wrapper span { cursor: pointer; font-size: 20px; transition: transform 0.2s; padding: 2px; }
+    .star-wrapper span:hover { transform: scale(1.3); }
+
+    .btn-trash-hist { background: transparent; color: #ef4444; font-size: 18px; border: none; cursor: pointer; }
+
+    /* MODAL CONFIRMAÇÃO */
+    .modal-confirm-backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 10000; justify-content: center; align-items: center; }
+    .modal-confirm-backdrop.open { display: flex; }
+    .modal-confirm { background: linear-gradient(145deg, #1e293b, #0f172a); color: white; padding: 30px; border-radius: 20px; text-align: center; width: 320px; border: 1px solid #334155; }
+    .confirm-actions { display: flex; justify-content: center; gap: 15px; margin-top: 25px; }
+    .btn-sim { background: white; color: #b91c1c; border: none; padding: 10px 25px; border-radius: 25px; font-weight: bold; cursor: pointer; }
+    .btn-nao { background: transparent; color: #cbd5e1; border: 2px solid #475569; padding: 8px 25px; border-radius: 25px; font-weight: bold; cursor: pointer; }
+
+    /* MODAL INPUT */
+    .modal-input-backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 10001; justify-content: center; align-items: center; }
+    .modal-input-backdrop.open { display: flex; }
+    .modal-input-content { background: #1e293b; padding: 25px; border-radius: 16px; width: 90%; max-width: 400px; border: 1px solid #38bdf8; display: flex; flex-direction: column; gap: 15px; }
+    .input-actions { display: flex; justify-content: flex-end; gap: 10px; }
+    .btn-confirm-input { background: #38bdf8; color: #0f172a; border-radius: 8px; padding: 8px 16px; }
+    .btn-cancel-input { background: transparent; border: 1px solid #64748b; color: #cbd5e1; border-radius: 8px; padding: 8px 16px; }
+
+  </style>
+</head>
+<body>
+
+  <h1>Lista de Compras <span id="statusIndicator" class="status-dot" title="Verificando conexão..."></span></h1>
+
+  <div class="app-closed-screen" id="appClosedScreen">
+      <h2 style="color: #94a3b8; margin-bottom: 25px;">O Aplicativo está seguro.</h2>
+      <button class="btn-reabrir" id="btnReabrirApp">Abrir Lista 🛒</button>
+  </div>
+
+  <div class="app" id="appContainer">
+    <button class="btn-fechar-app" id="btnFecharApp" title="Fechar App">✕</button>
+
+    <label for="responsavel">Responsável *</label>
+    <select id="responsavel"> 
+      <option value="">Selecione quem vai comprar...</option>
+    </select>
+
+    <div class="linha">
+      <div>
+        <label for="quantidade">Qtd</label>
+        <input type="number" id="quantidade" min="1" placeholder="1" disabled>
+      </div>
+      <div>
+        <label for="unidade">Un</label>
+        <select id="unidade" disabled>
+          <option value="">...</option>
+          <option value="un">un</option>
+          <option value="kg">kg</option>
+          <option value="g">g</option>
+          <option value="L">L</option>
+          <option value="ml">ml</option>
+          <option value="cx">cx</option>
+          <option value="pct">pct</option>
+          <option value="Lta">Lta</option>
+          <option value="bdj">bdj</option>
+        </select>
+      </div>
+      <div>
+        <label for="itemNome">Item</label>
+        <input type="text" id="itemNome" list="sugestoes-produtos" placeholder="O que falta?" disabled>
+        <datalist id="sugestoes-produtos"></datalist>
+      </div>
+      <div>
+        <label for="precoItem">Valor (€)</label>
+        <input type="tel" id="precoItem" placeholder="€ 0,00" disabled oninput="mascaraMoeda(this)">
+      </div>
+    </div>
+    
+    <button class="btn-add" id="btnAdd" disabled>Adicionar à Lista</button>
+
+    <ul id="lista"></ul>
+    
+    <div class="resumo" id="resumoContainer">
+      <span>Itens: 0</span>
+    </div>
+
+    <button class="btn-gerar" id="btnGerar" disabled>ENVIAR LISTA PARA WHATSAPP</button>
+    
+    <div class="botoes-extras">
+        <button class="btn-extra btn-historico" id="btnHistorico">📜 Histórico</button>
+        <button class="btn-extra btn-gerenciar" id="btnGerenciarSugestoes">⚙️ Itens Salvos</button>
+        <button class="btn-extra btn-importar" id="btnImportar">📥 Importar</button>
+        <button class="btn-extra btn-nova-lista" id="btnNovaLista">✨ Nova Lista</button>
+        <button class="btn-extra btn-pingo" id="btnLinkPingo" onclick="window.open('https://peixe123.github.io/pingodoce/', '_blank')">💳 ABRIR CARTÃO POUPA MAIS</button>
+    </div>
+    
+    <div class="output-wrapper">
+        <div class="area-botoes-copiar" id="areaBotoesCopiar">
+            <div class="grupo-acoes">
+                <button id="btnAlterarUltima" class="btn-pill btn-alterar-roxo">✏️ Alterar Lista</button>
+                <button id="btnLixeiraUltima" class="btn-pill btn-lixeira-dash" title="Apagar">🗑️</button>
+            </div>
+            <div class="grupo-acoes">
+                <button id="btnGerarLink" class="btn-pill btn-link-zap">🔗 Link Zap</button>
+                <button id="btnCopiarMain" class="btn-pill btn-copiar-laranja">Copiar</button>
+            </div>
+        </div>
+        <textarea id="saida" readonly placeholder="O texto formatado aparecerá aqui..."></textarea>
+    </div>
+  </div>
+
+  <div class="toast-container" id="toastContainer"></div>
+
+  <div class="modal-backdrop" id="modalBackdrop">
+    <div class="modal">
+      <div class="modal-header"><h2>Histórico</h2><span class="modal-close" id="modalClose">✕</span></div>
+      <div id="historicoConteudo"></div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="modalSugestoesBackdrop">
+    <div class="modal">
+      <div class="modal-header"><h2>Itens Aprendidos</h2><span class="modal-close" id="modalSugestoesClose">✕</span></div>
+      <div id="listaSugestoesContainer" style="max-height:300px; overflow-y:auto;"><ul id="listaItensPersonalizados"></ul></div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="modalImportBackdrop">
+    <div class="modal">
+      <div class="modal-header"><h2>Importar Lista</h2><span class="modal-close" id="modalImportClose">✕</span></div>
+      <textarea id="importArea" placeholder="Cole aqui o texto completo..."></textarea>
+      <button class="btn-processar" id="btnProcessarImportacao" style="background:#8b5cf6;color:white;padding:12px;width:100%;font-weight:bold;">PROCESSAR LISTA</button>
+    </div>
+  </div>
+
+  <div class="modal-confirm-backdrop" id="modalConfirmacao">
+      <div class="modal-confirm">
+          <h3 id="tituloConfirmacao">Tem certeza?</h3>
+          <p id="textoConfirmacao" style="margin-bottom:20px; font-size:14px; color: #cbd5e1;">Ação irreversível.</p>
+          <div class="confirm-actions">
+              <button class="btn-nao" id="btnConfirmarNao">Não</button>
+              <button class="btn-sim" id="btnConfirmarSim">Sim</button>
+          </div>
+      </div>
+  </div>
+
+  <div class="modal-input-backdrop" id="modalInputCustom">
+      <div class="modal-input-content">
+          <h3 id="tituloInputCustom">Entrada</h3>
+          <input type="text" id="campoInputCustom" placeholder="...">
+          <div class="input-actions">
+              <button class="btn-cancel-input" id="btnCancelarInput">Cancelar</button>
+              <button class="btn-confirm-input" id="btnConfirmarInput">Confirmar</button>
+          </div>
+      </div>
+  </div>
+
+<script>
+    // --- FUNÇÃO GLOBAL DE PLURAL ---
+    function plural(qtd, singular, pl) {
+        return parseInt(qtd) === 1 ? singular : pl;
+    }
+
+    const URL_SERVIDOR_JSON = 'produtos.json'; 
+    
+    // Backup de categorias para não depender só do JSON
+    let CATEGORY_ORDER = [
+        "Padaria & Pastelaria", "Hortofrutícola", "Carnes & Peixes Frescos", "Congelados", "Laticínios & Frios",
+        "Mercearia Seca & Enlatados", "Especiarias & Condimentos", "Bebidas", "Casa & Utilidades", "Limpeza Doméstica",
+        "Farmácia / Saúde", "Higiene Pessoal", "Higiene Infantil", "Pet Shop", "Vegetariano"
+    ];
+
+    // Backup de ITENS caso o JSON falhe (para a Prancheta Inteligente)
+    let DB_ITENS_BACKUP = {
+        "Padaria & Pastelaria": ["pão", "bolo", "croissant", "broa", "queque", "donuts", "torta"],
+        "Hortofrutícola": ["alface", "tomate", "cebola", "alho", "batata", "cenoura", "fruta", "banana", "maçã", "uva"],
+        "Carnes & Peixes Frescos": ["carne", "peixe", "frango", "bife", "salsicha"],
+        "Mercearia Seca & Enlatados": ["arroz", "massa", "feijão", "atum", "sardinha", "bolacha", "café", "açúcar", "farinha", "batata palha"],
+        "Laticínios & Frios": ["leite", "queijo", "iogurte", "manteiga", "fiambre", "natas", "ovo"],
+        "Bebidas": ["água", "sumo", "refrigerante", "cerveja", "vinho"],
+        "Limpeza Doméstica": ["detergente", "lixívia", "papel", "saco", "esponja"],
+        "Higiene Pessoal": ["champô", "gel", "pasta", "escova", "papel higiénico", "sabonete"]
+    };
+
+    const BANCO_DADOS_INICIAL = {};
+    const unidadesValidas = ["un", "kg", "g", "L", "ml", "cx", "pct", "Lta", "bdj"];
+    const dadosResponsavel = [
+        { texto: "Victor", valor: "victor" }, { texto: "Vic", valor: "vic" },
+        { texto: "Deby", valor: "debora" }, { texto: "Papito", valor: "papito" }
+    ];
+
+    let listaSugestoesMestra = [];
+    let bancoDadosCategorizado = {}; 
+    
+    const KEY_CUSTOM_ITEMS = 'meus_produtos_extras_v1';
+    const KEY_PRECOS_MEMORIA = 'meus_precos_v1';
+    const KEY_DB_CACHE = 'meu_banco_dados_cache_v2'; 
+    const STORAGE_KEY = 'listaComprasHistorico_v18';
+    const KEY_LAST_VIEW_LIST = 'ultima_lista_visual_v1'; 
+    
+    let lista = [];
+    let editIndex = -1; 
+    let idListaEmEdicao = null; 
+    let indexParaExcluir = -1; 
+    let tipoConfirmacao = ''; 
+
+    // Elementos DOM
+    const appContainer = document.getElementById('appContainer');
+    const appClosedScreen = document.getElementById('appClosedScreen');
+    const btnReabrirApp = document.getElementById('btnReabrirApp');
+    const btnFecharApp = document.getElementById('btnFecharApp');
+    const toastContainer = document.getElementById('toastContainer');
+    
+    const responsavelEl = document.getElementById('responsavel');
+    const quantidadeEl = document.getElementById('quantidade');
+    const unidadeEl = document.getElementById('unidade');
+    const precoItemEl = document.getElementById('precoItem'); 
+    const itemNomeEl = document.getElementById('itemNome');
+    const btnAdd = document.getElementById('btnAdd');
+    const btnGerar = document.getElementById('btnGerar');
+    const ulLista = document.getElementById('lista');
+    const resumoContainer = document.getElementById('resumoContainer');
+    
+    const saida = document.getElementById('saida');
+    const areaBotoesCopiar = document.getElementById('areaBotoesCopiar');
+    const btnCopiarMain = document.getElementById('btnCopiarMain');
+    const btnGerarLink = document.getElementById('btnGerarLink');
+    const btnAlterarUltima = document.getElementById('btnAlterarUltima');
+    const btnLixeiraUltima = document.getElementById('btnLixeiraUltima');
+
+    const btnHistorico = document.getElementById('btnHistorico');
+    const btnGerenciarSugestoes = document.getElementById('btnGerenciarSugestoes');
+    const btnNovaLista = document.getElementById('btnNovaLista'); 
+    const btnImportar = document.getElementById('btnImportar');
+
+    const modalConfirmacao = document.getElementById('modalConfirmacao');
+    const tituloConfirmacao = document.getElementById('tituloConfirmacao');
+    const textoConfirmacao = document.getElementById('textoConfirmacao');
+    const btnConfirmarSim = document.getElementById('btnConfirmarSim');
+    const btnConfirmarNao = document.getElementById('btnConfirmarNao');
+
+    const modalInputCustom = document.getElementById('modalInputCustom');
+    const tituloInputCustom = document.getElementById('tituloInputCustom');
+    const campoInputCustom = document.getElementById('campoInputCustom');
+    const btnConfirmarInput = document.getElementById('btnConfirmarInput');
+    const btnCancelarInput = document.getElementById('btnCancelarInput');
+    let inputModalResolve = null;
+
+    function popularSelect(elemento, dados) {
+        dados.forEach(item => {
+            const option = document.createElement('option');
+            option.value = item.valor; option.textContent = item.texto; elemento.appendChild(option);
+        });
+    }
+    popularSelect(responsavelEl, dadosResponsavel);
+
+    function atualizarStatusVisual(online) {
+        const statusDot = document.getElementById('statusIndicator');
+        if (online) {
+            statusDot.className = "status-dot online"; statusDot.title = "Online";
+            inicializarBancoDeProdutos(); 
+        } else {
+            statusDot.className = "status-dot offline"; statusDot.title = "Offline";
+        }
+    }
+    window.addEventListener('online', () => { atualizarStatusVisual(true); showToast("Online! 🌐", "sucesso"); });
+    window.addEventListener('offline', () => { atualizarStatusVisual(false); showToast("Offline! 📵", "erro"); });
+
+    async function inicializarBancoDeProdutos() {
+        const cacheLocal = localStorage.getItem(KEY_DB_CACHE);
+        if (cacheLocal) bancoDadosCategorizado = JSON.parse(cacheLocal);
+        else bancoDadosCategorizado = BANCO_DADOS_INICIAL;
+        atualizarDatalist();
+
+        if (!navigator.onLine) return;
+
+        try {
+            const response = await fetch(URL_SERVIDOR_JSON + '?v=' + new Date().getTime());
+            if (response.ok) {
+                const dadosServidor = await response.json();
+                if (JSON.stringify(dadosServidor) !== JSON.stringify(bancoDadosCategorizado)) {
+                    bancoDadosCategorizado = dadosServidor;
+                    localStorage.setItem(KEY_DB_CACHE, JSON.stringify(dadosServidor));
+                    atualizarDatalist(); 
+                    if(Object.keys(dadosServidor).length > 0) CATEGORY_ORDER = Object.keys(dadosServidor);
+                }
+                atualizarStatusVisual(true);
+            }
+        } catch (error) { atualizarStatusVisual(false); }
+    }
+    setInterval(() => { if(navigator.onLine) inicializarBancoDeProdutos(); }, 30000);
+
+    function atualizarDatalist() {
+        const baseProdutos = processarObjetoJSON(bancoDadosCategorizado);
+        const customItems = JSON.parse(localStorage.getItem(KEY_CUSTOM_ITEMS)) || [];
+        listaSugestoesMestra = [...new Set([...baseProdutos, ...customItems])].sort((a, b) => a.localeCompare(b));
+        const datalistEl = document.getElementById('sugestoes-produtos');
+        datalistEl.innerHTML = listaSugestoesMestra.map(item => `<option value="${item}">`).join('');
+    }
+
+    function processarObjetoJSON(jsonObj) {
+        let itens = [];
+        for (const categoria in jsonObj) { if (Array.isArray(jsonObj[categoria])) itens = itens.concat(jsonObj[categoria]); }
+        return itens;
+    }
+
+    function showToast(msg, tipo = 'info') {
+      const div = document.createElement('div'); div.className = `toast ${tipo}`; div.textContent = msg;
+      toastContainer.appendChild(div);
+      setTimeout(() => { if(div.parentNode) div.remove(); }, 6000); 
+    }
+
+    function showInputModal(titulo, valorAtual = '') {
+        return new Promise((resolve) => {
+            tituloInputCustom.textContent = titulo; campoInputCustom.value = valorAtual;
+            modalInputCustom.classList.add('open'); campoInputCustom.focus();
+            inputModalResolve = resolve;
+        });
+    }
+    function fecharInputModal(resultado) {
+        modalInputCustom.classList.remove('open');
+        if (inputModalResolve) { inputModalResolve(resultado); inputModalResolve = null; }
+    }
+    btnConfirmarInput.addEventListener('click', () => fecharInputModal(campoInputCustom.value));
+    btnCancelarInput.addEventListener('click', () => fecharInputModal(null));
+    campoInputCustom.addEventListener('keypress', (e) => { if (e.key === 'Enter') fecharInputModal(campoInputCustom.value); });
+
+    function aprenderNovoProduto(novoItem) {
+        const existe = listaSugestoesMestra.some(p => p.toLowerCase() === novoItem.toLowerCase());
+        if (!existe) {
+            let customItems = JSON.parse(localStorage.getItem(KEY_CUSTOM_ITEMS)) || [];
+            customItems.push(novoItem); localStorage.setItem(KEY_CUSTOM_ITEMS, JSON.stringify(customItems));
+            atualizarDatalist();
+        }
+    }
+    function removerItemAprendido(itemParaRemover) {
+        let customItems = JSON.parse(localStorage.getItem(KEY_CUSTOM_ITEMS)) || [];
+        customItems = customItems.filter(i => i !== itemParaRemover);
+        localStorage.setItem(KEY_CUSTOM_ITEMS, JSON.stringify(customItems));
+        atualizarDatalist(); renderizarModalSugestoes(); showToast("Removido!", "sucesso");
+    }
+    async function editarItemAprendido(oldName) {
+        const novoNome = await showInputModal("Corrigir nome:", oldName);
+        if (novoNome && novoNome.trim() !== "" && novoNome !== oldName) {
+            let customItems = JSON.parse(localStorage.getItem(KEY_CUSTOM_ITEMS)) || [];
+            customItems = customItems.filter(i => i !== oldName);
+            if (!customItems.includes(novoNome)) customItems.push(novoNome);
+            localStorage.setItem(KEY_CUSTOM_ITEMS, JSON.stringify(customItems));
+            atualizarDatalist(); renderizarModalSugestoes(); showToast("Atualizado!", "sucesso");
+        }
+    }
+
+    function salvarPrecoMemoria(nomeItem, preco) {
+        if (!nomeItem || preco <= 0.02) return; 
+        let memoria = JSON.parse(localStorage.getItem(KEY_PRECOS_MEMORIA)) || {};
+        memoria[nomeItem.toLowerCase()] = preco;
+        localStorage.setItem(KEY_PRECOS_MEMORIA, JSON.stringify(memoria));
+    }
+    function buscarPrecoMemoria(nomeItem) {
+        let memoria = JSON.parse(localStorage.getItem(KEY_PRECOS_MEMORIA)) || {};
+        return memoria[nomeItem.toLowerCase()] || 0;
+    }
+
+    // --- NOVA LÓGICA DE CATEGORIA INTELIGENTE ---
+    function obterPrioridadeCategoria(nomeItem) {
+        const nomeNorm = nomeItem.toLowerCase();
+        let melhorCategoria = "Outros";
+        let maiorTamanhoMatch = 0;
+
+        // Usa o banco de dados carregado ou o backup
+        const dbParaUsar = (Object.keys(bancoDadosCategorizado).length > 0) ? bancoDadosCategorizado : DB_ITENS_BACKUP;
+
+        // Itera pelas categorias conhecidas
+        for (let cat of CATEGORY_ORDER) {
+            if (dbParaUsar[cat]) {
+                for (let dbItem of dbParaUsar[cat]) {
+                    const dbItemNorm = dbItem.toLowerCase();
+                    if (nomeNorm.includes(dbItemNorm)) {
+                        // Prioriza o match mais específico (ex: "Batata Palha" > "Batata")
+                        if (dbItemNorm.length > maiorTamanhoMatch) {
+                            maiorTamanhoMatch = dbItemNorm.length;
+                            melhorCategoria = cat;
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Se não achou, retorna 99 para ir pro fim da lista
+        const index = CATEGORY_ORDER.indexOf(melhorCategoria);
+        return index !== -1 ? index : 99;
+    }
+
+    function capitalizarNome(nome) {
+        if (!nome) return ""; const texto = nome.trim();
+        return texto.charAt(0).toUpperCase() + texto.slice(1).toLowerCase();
+    }
+    function mascaraMoeda(campo) {
+        let valor = campo.value.replace(/\D/g, ""); 
+        if (valor === "") { campo.value = ""; return; }
+        if (valor.length > 5) { valor = valor.slice(0, 5); } 
+        valor = (parseInt(valor) / 100).toFixed(2).replace(".", ",");
+        campo.value = "€ " + valor;
+    }
+
+    function atualizarFluxo() {
+      const temResponsavel = !!responsavelEl.value;
+      if (!temResponsavel) {
+        quantidadeEl.disabled = true; unidadeEl.disabled = true; precoItemEl.disabled = true; itemNomeEl.disabled = true; btnAdd.disabled = true;
+      } else {
+        quantidadeEl.disabled = false; const qtdValida = parseInt(quantidadeEl.value) >= 1;
+        unidadeEl.disabled = !qtdValida;
+        if (!qtdValida) { unidadeEl.value = ""; precoItemEl.disabled = true; itemNomeEl.disabled = true; } 
+        else { itemNomeEl.disabled = !unidadeEl.value; precoItemEl.disabled = !unidadeEl.value; }
+      }
+      const completo = !quantidadeEl.disabled && quantidadeEl.value >= 1 && unidadeEl.value !== "" && itemNomeEl.value.trim() !== "";
+      btnAdd.disabled = !completo;
+      btnAdd.innerHTML = editIndex !== -1 ? '💾 Salvar Alteração' : '➕ Adicionar item';
+      btnAdd.classList.toggle('editando', editIndex !== -1);
+      btnGerar.disabled = !(temResponsavel && lista.length > 0);
+      btnGerar.textContent = idListaEmEdicao !== null ? "💾 SALVAR ALTERAÇÕES" : "ENVIAR LISTA PARA WHATSAPP";
+      btnGerar.style.background = idListaEmEdicao !== null ? "linear-gradient(135deg, #a855f7, #7e22ce)" : "";
+    }
+    responsavelEl.addEventListener('change', atualizarFluxo);
+    quantidadeEl.addEventListener('input', atualizarFluxo);
+    unidadeEl.addEventListener('change', atualizarFluxo);
+    itemNomeEl.addEventListener('input', () => {
+        atualizarFluxo();
+        const nome = itemNomeEl.value.trim();
+        if (nome.length > 2 && editIndex === -1) {
+            const preco = buscarPrecoMemoria(nome);
+            if (preco > 0) precoItemEl.value = "€ " + preco.toFixed(2).replace('.', ',');
+        }
+    });
+
+    btnAdd.addEventListener('click', () => {
+      const qtd = parseInt(quantidadeEl.value, 10);
+      const nome = capitalizarNome(itemNomeEl.value.trim());
+      const unidade = unidadeEl.value;
+      let preco = 0;
+      if (precoItemEl.value) preco = parseFloat(precoItemEl.value.replace(/[^\d,]/g, '').replace(',', '.')) || 0;
+
+      aprenderNovoProduto(nome); salvarPrecoMemoria(nome, preco);
+
+      const duplicado = lista.some((item, idx) => (editIndex === -1 || idx !== editIndex) && item.nome.toLowerCase() === nome.toLowerCase());
+      if (duplicado) { showToast(`⛔ "${nome}" já está na lista!`, 'erro'); return; }
+
+      const novo = { qtd, nome, unidade, preco };
+      if (editIndex > -1) { lista[editIndex] = novo; showToast('Atualizado!', 'sucesso'); editIndex = -1; } 
+      else { lista.push(novo); showToast('Adicionado!', 'sucesso'); }
+
+      renderLista();
+      quantidadeEl.value = ''; unidadeEl.value = ''; itemNomeEl.value = ''; precoItemEl.value = '';
+      atualizarFluxo(); quantidadeEl.focus();
+    });
+
+    function renderLista() {
+      ulLista.innerHTML = ''; let total = 0;
+      lista.forEach((item, idx) => {
+        let fator = ['g', 'ml'].includes(item.unidade) ? 1000 : 1;
+        const sub = (item.qtd / fator) * (item.preco || 0);
+        total += sub;
+
+        const li = document.createElement('li');
+        li.innerHTML = `
+            <div class="item-texto" onclick="carregarEdicao(${idx})">
+                <span class="item-nome"><strong>${item.qtd} ${item.unidade}</strong> - ${item.nome}</span>
+                ${sub > 0 ? `<span class="item-detalhe-preco">(€ ${item.preco.toFixed(2)}) = € ${sub.toFixed(2)}</span>` : ''}
+            </div>
+            <button class="btn-remover" onclick="event.stopPropagation();solicitarExclusaoItem(${idx})">✕</button>
+        `;
+        ulLista.appendChild(li);
+      });
+      resumoContainer.innerHTML = `<span>Carrinho: ${lista.length} ${plural(lista.length, 'item', 'itens')}</span><span style="color:#4ade80;">Total Estimado: € ${total.toFixed(2)}</span>`;
+      atualizarFluxo();
+    }
+
+    function carregarEdicao(index) {
+      const item = lista[index]; editIndex = index;
+      quantidadeEl.disabled = false; quantidadeEl.value = item.qtd;
+      unidadeEl.disabled = false; unidadeEl.value = item.unidade;
+      itemNomeEl.disabled = false; itemNomeEl.value = item.nome;
+      precoItemEl.disabled = false; precoItemEl.value = item.preco ? "€ " + item.preco.toFixed(2).replace('.', ',') : '';
+      showToast(`Editando: ${item.nome}`, 'info'); itemNomeEl.focus(); atualizarFluxo();
+    }
+    function removerItem(index) {
+      if (index === editIndex) editIndex = -1; else if (index < editIndex) editIndex--;
+      lista.splice(index, 1); renderLista();
+    }
+    function solicitarExclusaoItem(index) {
+        indexParaExcluir = index; tipoConfirmacao = 'excluir_item';
+        tituloConfirmacao.textContent = 'Remover item?'; textoConfirmacao.textContent = lista[index].nome;
+        modalConfirmacao.classList.add('open');
+    }
+    function solicitarExclusaoHist(index) {
+        indexParaExcluir = index; tipoConfirmacao = 'excluir_hist';
+        tituloConfirmacao.textContent = 'Excluir do Histórico?'; textoConfirmacao.textContent = 'Permanente.';
+        modalConfirmacao.classList.add('open');
+    }
+
+    // PERSISTÊNCIA E RECUPERAÇÃO DA ÚLTIMA LISTA
+    function carregarUltimaListaVisual() {
+        const ultimaLista = localStorage.getItem(KEY_LAST_VIEW_LIST);
+        
+        if (ultimaLista && ultimaLista.trim() !== "") {
+            saida.value = ultimaLista;
+            areaBotoesCopiar.style.display = 'flex';
+        } else {
+            let hist = carregarHistorico();
+            if (hist.length > 0) {
+                saida.value = hist[0].texto;
+                localStorage.setItem(KEY_LAST_VIEW_LIST, hist[0].texto);
+                areaBotoesCopiar.style.display = 'flex';
+            } else {
+                saida.value = "";
+                areaBotoesCopiar.style.display = 'none';
+            }
+        }
+    }
+
+    btnAlterarUltima.addEventListener('click', () => {
+        let hist = carregarHistorico();
+        if (hist.length > 0) {
+            const h = hist[0]; 
+            if(h.listaBackup) { 
+                lista = JSON.parse(JSON.stringify(h.listaBackup)); 
+                responsavelEl.value = h.respValor || ""; 
+                idListaEmEdicao = 0; 
+                renderLista(); atualizarFluxo(); 
+                showToast('Lista carregada para edição!', 'sucesso');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        } else {
+            showToast('Nenhuma lista no histórico para editar.', 'erro');
+        }
+    });
+
+    btnLixeiraUltima.addEventListener('click', () => {
+        tipoConfirmacao = 'apagar_dashboard';
+        tituloConfirmacao.textContent = 'Apagar Lista?';
+        textoConfirmacao.textContent = 'Isso limpará a tela e apagará o registro mais recente do histórico.';
+        modalConfirmacao.classList.add('open');
+    });
+
+    // GERAÇÃO DE LISTA
+    btnGerar.addEventListener('click', () => {
+      if (lista.length > 0) gerarListaFinal(true);
+    });
+
+    function gerarListaFinal(salvarHistorico) {
+      try {
+          const nomeResp = responsavelEl.options[responsavelEl.selectedIndex].text;
+          
+          const d = new Date();
+          const ms = String(d.getMilliseconds()).padStart(3, '0');
+          // CÓDIGO COM MILISSEGUNDOS: DDMMYY.HHmmSS-XXX
+          const cod = `${String(d.getDate()).padStart(2,'0')}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getFullYear()).slice(-2)}.${String(d.getHours()).padStart(2,'0')}${String(d.getMinutes()).padStart(2,'0')}${String(d.getSeconds()).padStart(2,'0')}-${ms}`;
+          
+          // Ordena baseado no Banco de Dados Inteligente
+          let listaOrdenada = [...lista].sort((a, b) => {
+              const pA = obterPrioridadeCategoria(a.nome); const pB = obterPrioridadeCategoria(b.nome);
+              return pA === pB ? a.nome.localeCompare(b.nome) : pA - pB;
+          });
+
+          // LINK OFICIAL DO NOVO CARTÃO (ATUALIZADO PARA PINGODOCE)
+          const linkAppCartao = "https://peixe123.github.io/pingodoce/";
+
+          let texto = `===============\n LISTA DE COMPRAS\n===============\n`;
+          let total = 0;
+          listaOrdenada.forEach(i => {
+              let fator = ['g', 'ml'].includes(i.unidade) ? 1000 : 1;
+              total += (i.qtd / fator) * (i.preco || 0);
+              texto += `* ${i.qtd} ${i.unidade} ${i.nome}\n`;
+          });
+          
+          const qtdFormatada = String(lista.length).padStart(2,'0');
+          const labelItens = plural(lista.length, 'item', 'itens');
+          
+          texto += `\nCarrinho: ${qtdFormatada} ${labelItens}\n`;
+          
+          if(total > 0) {
+            texto += `Valor Estimado:\n€ ${total.toFixed(2)}\n`;
+          }
+
+          texto += `🛒🛒🛒🛒🛒🛒🛒\n`;
+          texto += `---------------------\n`;
+          texto += `${nomeResp}...\n`;
+          texto += `🛍Boas compras!!\n`;
+          texto += `---------------------\n`;
+          texto += `\`${cod}\`\n`;
+          texto += `===============\n`;
+          texto += `CARTÃO POUPA MAIS:\n`;
+          texto += `${linkAppCartao}\n`;
+          texto += `💳`;
+
+          saida.value = texto; 
+          localStorage.setItem(KEY_LAST_VIEW_LIST, texto); 
+          areaBotoesCopiar.style.display = 'flex'; 
+          copiarParaClipboard(texto);
+
+          if (salvarHistorico) {
+              salvarNoHistoricoLocal(texto, nomeResp); showToast('Copiado e Salvo!', 'sucesso');
+              iniciarNovaLista();
+          }
+      } catch (err) {
+          console.error(err);
+          showToast(`Erro: ${err.message}`, 'erro');
+      }
+    }
+
+    function copiarParaClipboard(texto) {
+        if (navigator.clipboard) navigator.clipboard.writeText(texto);
+        else { const t = document.createElement('textarea'); t.value = texto; document.body.appendChild(t); t.select(); document.execCommand('copy'); document.body.removeChild(t); }
+    }
+    btnCopiarMain.addEventListener('click', () => { copiarParaClipboard(saida.value); showToast('Copiado!', 'sucesso'); });
+    btnGerarLink.addEventListener('click', () => { 
+        if(!saida.value) return; 
+        copiarParaClipboard(saida.value); showToast('Redirecionando...', 'sucesso'); 
+        setTimeout(() => window.open("https://chat.whatsapp.com/GODcvt8p5kTGsqFrmNTP6s", "_blank"), 800);
+    });
+
+    // SISTEMA
+    btnNovaLista.addEventListener('click', () => {
+        if (lista.length > 0) {
+            tipoConfirmacao = 'nova_lista'; tituloConfirmacao.textContent = 'Nova Lista?'; textoConfirmacao.textContent = 'Apagará itens atuais.'; modalConfirmacao.classList.add('open');
+        } else iniciarNovaLista();
+    });
+    function iniciarNovaLista() {
+        lista = []; editIndex = -1; idListaEmEdicao = null;
+        responsavelEl.value = ""; quantidadeEl.value = ""; unidadeEl.value = ""; itemNomeEl.value = ""; precoItemEl.value = "";
+        renderLista(); atualizarFluxo();
+    }
+    btnFecharApp.addEventListener('click', () => { appContainer.style.display='none'; appClosedScreen.style.display='block'; });
+    btnReabrirApp.addEventListener('click', () => { appClosedScreen.style.display='none'; appContainer.style.display='block'; });
+
+    btnConfirmarSim.addEventListener('click', () => {
+        if (tipoConfirmacao === 'excluir_item') removerItem(indexParaExcluir);
+        else if (tipoConfirmacao === 'excluir_hist' && indexParaExcluir !== -1) executarExclusaoHist(indexParaExcluir);
+        else if (tipoConfirmacao === 'nova_lista') iniciarNovaLista();
+        else if (tipoConfirmacao === 'apagar_dashboard') {
+            saida.value = "";
+            areaBotoesCopiar.style.display = 'none';
+            localStorage.removeItem(KEY_LAST_VIEW_LIST);
+            
+            let hist = carregarHistorico();
+            if(hist.length > 0) {
+                hist.shift(); 
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(hist));
+                
+                if(hist.length > 0) {
+                    saida.value = hist[0].texto;
+                    localStorage.setItem(KEY_LAST_VIEW_LIST, hist[0].texto);
+                    areaBotoesCopiar.style.display = 'flex';
+                }
+            }
+            showToast('Lista removida.', 'info');
+        }
+        modalConfirmacao.classList.remove('open');
+    });
+    btnConfirmarNao.addEventListener('click', () => modalConfirmacao.classList.remove('open'));
+
+    function carregarHistorico() { try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; } catch { return []; } }
+    
+    function salvarNoHistoricoLocal(textoFinal, resp, apenasAtualizarTimestamp = false) {
+      let hist = carregarHistorico();
+      if (apenasAtualizarTimestamp && idListaEmEdicao !== null && hist[idListaEmEdicao]) {
+          hist[idListaEmEdicao].dataLegivel = new Date().toLocaleString('pt-BR') + " (Verificado)";
+          hist[idListaEmEdicao].texto = textoFinal;
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(hist));
+          return;
+      }
+      const novoItem = { 
+          dataLegivel: new Date().toLocaleString('pt-BR'), 
+          texto: textoFinal, 
+          listaBackup: JSON.parse(JSON.stringify(lista)), 
+          respValor: responsavelEl.value, 
+          favorito: 0
+      };
+
+      if (idListaEmEdicao !== null && hist[idListaEmEdicao]) {
+          novoItem.favorito = hist[idListaEmEdicao].favorito; 
+          novoItem.dataLegivel = new Date().toLocaleString('pt-BR') + " (Editada)";
+          hist[idListaEmEdicao] = novoItem;
+      } else {
+          hist.unshift(novoItem);
+      }
+
+      while (hist.length > 15) {
+         let indexToRemove = -1;
+         for(let i = hist.length - 1; i >= 0; i--) {
+             if(!hist[i].favorito) { indexToRemove = i; break; }
+         }
+         if(indexToRemove !== -1) hist.splice(indexToRemove, 1);
+         else break; 
+      }
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(hist));
+    }
+
+    function executarExclusaoHist(index) {
+        let hist = carregarHistorico();
+        hist.splice(index, 1);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(hist));
+        abrirModalHistorico(); 
+        
+        if (index === 0) {
+             if(hist.length > 0) {
+                 saida.value = hist[0].texto;
+                 localStorage.setItem(KEY_LAST_VIEW_LIST, hist[0].texto);
+             } else {
+                 saida.value = "";
+                 localStorage.removeItem(KEY_LAST_VIEW_LIST);
+                 areaBotoesCopiar.style.display = 'none';
+             }
+        }
+        showToast('Excluído.', 'info');
+    }
+
+    function definirClassificacao(index, valor) {
+        let hist = carregarHistorico();
+        let item = hist[index];
+        if (typeof item.favorito === 'undefined') item.favorito = 0;
+        item.favorito = (item.favorito === valor) ? 0 : valor;
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(hist));
+        abrirModalHistorico();
+    }
+
+    const modalBackdrop = document.getElementById('modalBackdrop');
+    const modalClose = document.getElementById('modalClose');
+    const historicoConteudo = document.getElementById('historicoConteudo');
+    
+    function abrirModalHistorico() {
+      let hist = carregarHistorico();
+      const histComIndex = hist.map((item, index) => ({...item, originalIndex: index}));
+      
+      histComIndex.sort((a, b) => {
+          const favA = (typeof a.favorito === 'number') ? a.favorito : (a.favorito ? 1 : 0);
+          const favB = (typeof b.favorito === 'number') ? b.favorito : (b.favorito ? 1 : 0);
+          if (favB !== favA) return favB - favA; 
+          return 0; 
+      });
+
+      historicoConteudo.innerHTML = hist.length === 0 ? '<p style="text-align:center; color:#64748b;">Sem histórico.</p>' : '';
+      
+      histComIndex.forEach((h) => {
+        const idx = h.originalIndex; 
+        const stars = (typeof h.favorito === 'number') ? h.favorito : 0;
+        const qtdItens = h.listaBackup ? h.listaBackup.length : 0;
+        const labelItensHist = plural(qtdItens, 'Item', 'Itens');
+
+        let starClass = '';
+        if(stars === 1) starClass = 'star-1';
+        if(stars === 2) starClass = 'star-2';
+        if(stars === 3) starClass = 'star-3';
+        if(stars === 4) starClass = 'star-4';
+
+        const block = document.createElement('div'); 
+        block.className = `historico-item ${starClass}`;
+        
+        const header = document.createElement('div');
+        header.className = 'historico-top-bar';
+        
+        const starWrapper = document.createElement('div');
+        starWrapper.className = 'star-wrapper';
+        for(let i=1; i<=4; i++) {
+            const s = document.createElement('span');
+            if(i <= stars) {
+                s.style.color = '#eab308'; s.style.textShadow = '0 0 5px rgba(234, 179, 8, 0.6)'; s.textContent = '★';
+            } else {
+                s.style.color = '#475569'; s.style.opacity = '0.4'; s.textContent = '★';
+            }
+            s.onclick = (e) => { e.stopPropagation(); definirClassificacao(idx, i); };
+            starWrapper.appendChild(s);
+        }
+
+        const dataSpan = document.createElement('span');
+        dataSpan.textContent = `${h.dataLegivel} (${qtdItens} ${labelItensHist})`;
+        dataSpan.style.fontWeight = 'bold';
+        dataSpan.style.fontSize = '11px';
+        
+        const btnTrash = document.createElement('button');
+        btnTrash.className = `btn-trash-hist`;
+        btnTrash.innerHTML = '🗑️'; 
+        btnTrash.onclick = () => solicitarExclusaoHist(idx);
+        
+        header.appendChild(dataSpan); header.appendChild(starWrapper); header.appendChild(btnTrash);
+
+        const pre = document.createElement('pre'); 
+        pre.textContent = h.texto.length > 200 ? h.texto.substring(0, 200) + '...' : h.texto;
+        pre.style.color = '#94a3b8'; pre.style.fontSize = '11px';
+        
+        const actions = document.createElement('div');
+        actions.className = 'historico-actions';
+
+        const btnLink = document.createElement('button');
+        btnLink.className = 'btn-link-zap btn-pill';
+        btnLink.textContent = 'LINK ZAP';
+        btnLink.onclick = () => {
+             copiarParaClipboard(h.texto);
+             showToast("Redirecionando...", "sucesso");
+             setTimeout(() => { window.open("https://chat.whatsapp.com/GODcvt8p5kTGsqFrmNTP6s", "_blank"); }, 800);
+        };
+
+        const btnRes = document.createElement('button'); 
+        btnRes.className = 'btn-alterar-roxo btn-pill'; 
+        btnRes.textContent = 'EDITAR';
+        btnRes.onclick = () => { 
+            if(h.listaBackup) { 
+                lista = JSON.parse(JSON.stringify(h.listaBackup)); 
+                responsavelEl.value = h.respValor || ""; 
+                idListaEmEdicao = idx; 
+                renderLista(); atualizarFluxo(); 
+                modalBackdrop.classList.remove('open'); 
+                showToast('Carregado!', 'sucesso');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            } 
+        };
+        
+        const btnCop = document.createElement('button'); 
+        btnCop.className = 'btn-copiar-laranja btn-pill'; 
+        btnCop.textContent = 'COPIAR';
+        btnCop.onclick = () => { copiarParaClipboard(h.texto); showToast("Copiado!", "sucesso"); };
+
+        actions.appendChild(btnLink); actions.appendChild(btnRes); actions.appendChild(btnCop);
+        block.appendChild(header); block.appendChild(pre); block.appendChild(actions); 
+        historicoConteudo.appendChild(block);
+      });
+      modalBackdrop.classList.add('open');
+    }
+
+    btnHistorico.addEventListener('click', abrirModalHistorico);
+    modalClose.addEventListener('click', () => modalBackdrop.classList.remove('open'));
+
+    // IMPORTAR
+    btnImportar.addEventListener('click', () => {
+        document.getElementById('importArea').value = "";
+        document.getElementById('modalImportBackdrop').classList.add('open');
+        document.getElementById('importArea').focus();
+    });
+    document.getElementById('modalImportClose').addEventListener('click', () => document.getElementById('modalImportBackdrop').classList.remove('open'));
+    
+    document.getElementById('btnProcessarImportacao').addEventListener('click', () => {
+        const txt = document.getElementById('importArea').value;
+        const regex = /\*\s+(\d+)\s+(\S+)\s+(.+)/;
+        const linhas = txt.split('\n');
+        let nova = [];
+        linhas.forEach(l => {
+            const m = l.match(regex);
+            if(m && unidadesValidas.includes(m[2])) nova.push({qtd:m[1], unidade:m[2], nome:capitalizarNome(m[3].trim()), preco:0});
+        });
+        if(nova.length){ 
+            lista = nova; renderLista(); 
+            document.getElementById('modalImportBackdrop').classList.remove('open'); 
+            showToast("Importado!", "sucesso");
+        }
+        else showToast("Nada encontrado", "erro");
+    });
+    
+    // SUGESTÕES
+    btnGerenciarSugestoes.addEventListener('click', () => {
+        const listaEl = document.getElementById('listaItensPersonalizados'); listaEl.innerHTML = '';
+        const dataRaw = localStorage.getItem(KEY_CUSTOM_ITEMS);
+        let custom = [];
+        try { custom = JSON.parse(dataRaw) || []; } catch(e){ custom = []; }
+        
+        if(!custom.length) listaEl.innerHTML = '<li>Vazio</li>';
+        custom.forEach(i => {
+            const li = document.createElement('li'); li.className = 'item-personalizado';
+            li.innerHTML = `<span>${i}</span><div class="actions-personalizado"><button class="btn-edit-item" onclick="editarItemAprendido('${i}')">✏️</button><button class="btn-trash-item" onclick="removerItemAprendido('${i}')">🗑️</button></div>`;
+            listaEl.appendChild(li);
+        });
+        document.getElementById('modalSugestoesBackdrop').classList.add('open');
+    });
+    document.getElementById('modalSugestoesClose').addEventListener('click', () => document.getElementById('modalSugestoesBackdrop').classList.remove('open'));
+
+    inicializarBancoDeProdutos(); 
+    atualizarFluxo();
+    carregarUltimaListaVisual(); 
+</script>
+</body>
+</html>

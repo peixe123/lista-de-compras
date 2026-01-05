@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gestor GitHub V11 (Sem PHP)</title>
+<style>
+    :root { 
+        --primary: #2c3e50; 
+        --secondary: #27ae60; 
+        --danger: #e74c3c; 
+        --light: #ecf0f1; 
+        --dark: #333; 
+        --cloud: #9b59b6;
+        --info: #3498db;
+        --warning: #f39c12;
+        --edit: #f39c12;
+    }
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; background-color: #f4f4f4; color: var(--dark); }
+    
+    header { background-color: var(--primary); color: white; padding: 15px; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 5px rgba(0,0,0,0.2); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; }
+    h1 { margin: 0; font-size: 1.2rem; display: flex; align-items: center; gap: 10px; }
+    
+    .total-badge { background: var(--secondary); font-size: 0.8rem; padding: 2px 8px; border-radius: 12px; }
+
+    .toolbar { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; width: 100%; margin-bottom: 15px; }
+    button { padding: 8px 12px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; transition: 0.2s; font-size: 0.9rem; }
+    
+    .btn-green { background-color: var(--secondary); color: white; }
+    .btn-green:hover { background-color: #219150; }
+    .btn-red { background-color: var(--danger); color: white; }
+    .btn-red:hover { background-color: #c0392b; }
+    .btn-blue { background-color: #3498db; color: white; }
+    .btn-blue:hover { background-color: #2980b9; }
+    .btn-purple { background-color: #8e44ad; color: white; }
+    .btn-purple:hover { background-color: #732d91; }
+    
+    .btn-cloud { background-color: var(--cloud); color: white; box-shadow: 0 4px 0 #8e44ad; }
+    .btn-cloud:active { transform: translateY(4px); box-shadow: none; }
+
+    .container { padding: 20px; max-width: 1000px; margin: 0 auto; }
+    
+    /* PAINEL DE COMANDO UNIFICADO */
+    .command-panel { 
+        background: white; 
+        padding: 15px; 
+        border-radius: 8px; 
+        box-shadow: 0 4px 10px rgba(0,0,0,0.1); 
+        margin-bottom: 20px; 
+        display: flex; 
+        gap: 10px; 
+        flex-wrap: wrap; 
+        align-items: stretch; 
+        border: 1px solid #ddd;
+    }
+
+    /* Grupo da Categoria */
+    .cat-group { display: flex; gap: 5px; flex: 1; min-width: 200px; }
+    select { padding: 8px; border: 1px solid #bdc3c7; border-radius: 4px; flex-grow: 1; height: 42px; background: #fdfdfd; font-weight: bold; color: #2c3e50; }
+    
+    .btn-small-add {
+        background-color: var(--secondary); color: white; width: 42px; height: 42px; padding: 0; font-size: 1.4rem;
+        display: flex; align-items: center; justify-content: center; border-radius: 4px; border: 1px solid #27ae60;
+    }
+
+    /* Input de Busca/Adição */
+    .input-group { flex: 2; min-width: 250px; display: flex; gap: 5px; }
+    .hybrid-input { 
+        width: 100%; padding: 10px; border: 2px solid #3498db; border-radius: 4px; font-size: 1rem; box-sizing: border-box; 
+        transition: all 0.3s; height: 42px; 
+    }
+    .hybrid-input:focus { outline: none; box-shadow: 0 0 5px rgba(52, 152, 219, 0.5); }
+    .hybrid-input::placeholder { color: #95a5a6; font-style: italic; }
+
+    .btn-action-main { height: 42px; padding: 0 20px; font-size: 1rem; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    /* Acordeão e Cabeçalho da Categoria */
+    .category-block { background: white; border-radius: 8px; margin-bottom: 5px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); overflow: hidden; transition: all 0.3s ease; }
+    .category-block.hidden { display: none; }
+
+    .category-header { 
+        background-color: var(--light); 
+        padding: 15px; 
+        font-weight: bold; 
+        color: var(--primary); 
+        border-bottom: 1px solid #ddd; 
+        display: flex; 
+        justify-content: space-between; 
+        align-items: center; 
+        cursor: pointer; 
+        user-select: none; 
+        transition: background-color 0.2s; 
+    }
+    .category-header:hover { background-color: #dce4e6; }
+    .category-header.active { background-color: #d6eaf8; color: #2980b9; }
+    
+    .cat-title-area { display: flex; align-items: center; gap: 10px; flex-grow: 1; }
+    .cat-arrow { font-size: 0.8rem; transition: transform 0.3s; }
+    .category-header.active .cat-arrow { transform: rotate(180deg); }
+
+    .cat-actions { display: flex; gap: 5px; }
+
+    .btn-icon {
+        background: none; border: none; font-size: 1.1rem; padding: 5px; cursor: pointer; transition: transform 0.2s;
+    }
+    .btn-icon:hover { transform: scale(1.2); }
+    .btn-edit { color: var(--edit); }
+    .btn-delete { color: #bdc3c7; }
+    .btn-delete:hover { color: var(--danger); }
+
+    .item-list { list-style: none; padding: 0; margin: 0; display: none; background-color: white; }
+    .item-list.show { display: block; animation: slideDown 0.3s ease-out; }
+    @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+
+    .item-list li { padding: 10px 15px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
+    .item-list li:last-child { border-bottom: none; }
+    .item-list li.hidden { display: none; }
+
+    .item-actions { display: flex; gap: 5px; }
+
+    #closed-screen { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #2c3e50; color: white; justify-content: center; align-items: center; flex-direction: column; z-index: 999; }
+    .status-bar { font-size: 0.8rem; margin-top: 5px; color: #ecf0f1; opacity: 0.8; width: 100%; }
+    
+    #auto-save-indicator {
+        position: fixed; bottom: 20px; right: 20px;
+        background: rgba(0,0,0,0.8); color: white;
+        padding: 10px 20px; border-radius: 30px;
+        font-size: 0.9rem; display: none; z-index: 500;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    }
+
+    #notification-area { position: fixed; top: 20px; right: 20px; z-index: 2000; display: flex; flex-direction: column; gap: 10px; }
+    .notify-bubble { min-width: 250px; padding: 15px 20px; border-radius: 50px; color: white; font-weight: bold; box-shadow: 0 4px 15px rgba(0,0,0,0.2); opacity: 0; transform: translateX(50px) scale(0.8); animation: bubbleIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; display: flex; align-items: center; justify-content: space-between; }
+    .notify-bubble.hide { animation: bubbleOut 0.4s forwards; }
+    .notify-success { background: linear-gradient(135deg, #27ae60, #2ecc71); }
+    .notify-error   { background: linear-gradient(135deg, #c0392b, #e74c3c); }
+    .notify-info    { background: linear-gradient(135deg, #2980b9, #3498db); }
+    .notify-warning { background: linear-gradient(135deg, #d35400, #f39c12); }
+    @keyframes bubbleIn { to { opacity: 1; transform: translateX(0) scale(1); } }
+    @keyframes bubbleOut { to { opacity: 0; transform: translateY(-20px) scale(0.8); } }
+
+    /* --- MODAIS --- */
+    .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 3000; justify-content: center; align-items: center; backdrop-filter: blur(3px); }
+    .modal-content { background: white; padding: 25px; border-radius: 12px; width: 90%; max-width: 400px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.2); animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); display: flex; flex-direction: column; max-height: 85vh; }
+    @keyframes popIn { from { transform: scale(0.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+    .modal-buttons { display: flex; justify-content: center; gap: 15px; margin-top: 20px; }
+    .modal-input { width: 100%; padding: 10px; margin-top: 15px; border: 2px solid #ddd; border-radius: 6px; box-sizing: border-box; font-size: 1rem; }
+    .modal-input:focus { border-color: var(--secondary); outline: none; }
+
+    /* Estilos do Reordenador */
+    .reorder-list { 
+        text-align: left; margin: 15px 0; overflow-y: auto; flex-grow: 1; border: 1px solid #eee; padding: 5px; border-radius: 6px;
+    }
+    .reorder-item { 
+        display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: #f9f9f9; margin-bottom: 5px; border-radius: 4px; border: 1px solid #eee;
+    }
+    .reorder-controls button {
+        background: #ecf0f1; border: 1px solid #bdc3c7; color: #2c3e50; width: 30px; height: 30px; border-radius: 4px; cursor: pointer; display: inline-flex; justify-content: center; align-items: center; margin-left: 2px;
+    }
+    .reorder-controls button:hover { background: #bdc3c7; }
+
+</style>
+</head>
+<body>
+
+<div id="notification-area"></div>
+<div id="auto-save-indicator">💾 Salvando no celular...</div>
+
+<div id="confirm-modal" class="modal-overlay">
+    <div class="modal-content" style="max-height: auto;">
+        <h3 id="confirm-title" style="margin-top:0; color:var(--primary);">Atenção</h3>
+        <p id="confirm-msg">Tem certeza?</p>
+        <div class="modal-buttons">
+            <button id="btn-confirm-no" class="btn-red" style="background:#95a5a6;">Cancelar</button>
+            <button id="btn-confirm-yes" class="btn-green">Confirmar</button>
+        </div>
+    </div>
+</div>
+
+<div id="input-modal" class="modal-overlay">
+    <div class="modal-content" style="max-height: auto;">
+        <h3 id="input-title" style="margin-top:0; color:var(--primary);">Entrada de Dados</h3>
+        <p id="input-desc">Digite abaixo:</p>
+        <input type="text" id="modal-input-field" class="modal-input" placeholder="...">
+        <div class="modal-buttons">
+            <button id="btn-input-cancel" class="btn-red" style="background:#95a5a6;">Cancelar</button>
+            <button id="btn-input-confirm" class="btn-green">Salvar</button>
+        </div>
+    </div>
+</div>
+
+<div id="reorder-modal" class="modal-overlay">
+    <div class="modal-content">
+        <h3 style="margin-top:0; color:var(--primary);">Organizar Prioridades</h3>
+        <p style="font-size:0.9rem; color:#7f8c8d; margin:0;">Use as setas para mover:</p>
+        
+        <div class="reorder-list" id="reorder-list-container"></div>
+
+        <div class="modal-buttons">
+            <button onclick="closeReorderModal()" class="btn-red" style="background:#95a5a6;">Cancelar</button>
+            <button onclick="saveNewOrder()" class="btn-green">Salvar Ordem</button>
+        </div>
+    </div>
+</div>
+
+<div id="closed-screen">
+    <h1>Aplicação Encerrada</h1>
+    <button onclick="location.reload()" class="btn-green">Reabrir</button>
+</div>
+
+<div id="app-content">
+    <header>
+        <div style="width:100%; display:flex; justify-content:space-between; align-items:center;">
+            <h1>📦 Gestor GitHub V11 <span id="totalCounter" class="total-badge" title="Total de Itens">0</span></h1>
+            <button onclick="closeApp()" class="btn-red">FECHAR</button>
+        </div>
+        <div id="statusMsg" class="status-bar">Carregando...</div>
+    </header>
+
+    <div class="container">
+        <div class="toolbar">
+            <button onclick="copyDataToClipboard()" class="btn-cloud" title="Copiar JSON para colar em outro lugar">📋 Copiar Dados</button>
+            <button onclick="downloadTXT()" class="btn-green">Baixar Backup</button>
+            <button onclick="openReorderModal()" class="btn-purple" title="Mudar ordem das categorias">🔃 Ordem</button>
+            <button onclick="forceReset()" style="background:#7f8c8d; color:white;">Resetar</button>
+        </div>
+
+        <div class="command-panel">
+            <div class="cat-group">
+                <select id="categorySelect" title="Categoria onde o item será salvo"></select>
+                <button class="btn-small-add" onclick="addNewCategory()" title="Criar Nova Categoria">+</button>
+            </div>
+            
+            <div class="input-group">
+                <input type="text" id="hybridInput" class="hybrid-input" placeholder="🔍 Busque ou Digite um Novo Item..." onkeyup="handleHybridInput(event)">
+                <button onclick="addItem()" class="btn-blue btn-action-main">Adicionar</button>
+            </div>
+        </div>
+
+        <div id="listDisplay"></div>
+    </div>
+</div>
+
+<script>
+// LISTA DE CATEGORIAS (Prioridade Default)
+let CATEGORY_ORDER = [
+    "Padaria & Pastelaria", "Hortofrutícola", "Carnes & Peixes Frescos", "Congelados", "Laticínios & Frios",
+    "Mercearia Seca & Enlatados", "Especiarias & Condimentos", "Bebidas", "Casa & Utilidades", "Limpeza Doméstica",
+    "Farmácia / Saúde", "Higiene Pessoal", "Higiene Infantil", "Pet Shop", "Vegetariano"
+];
+
+// DADOS DE BACKUP COMPLETOS
+const BACKUP_DATA = {
+  "Padaria & Pastelaria": ["Pão de mistura", "Pão de forma", "Pão integral", "Pão pita", "Pão de centeio", "Broa", "Pão de deus", "Croissant", "Bolo de arroz", "Queques", "Donuts", "Torta de laranja", "Pão de ló", "Bolo-rei"],
+  "Laticínios & Frios": ["Leite meio gordo", "Leite gordo", "Leite magro", "Leite sem lactose", "Iogurte natural", "Iogurte aromatizado", "Iogurte grego", "Queijo fresco", "Requeijão", "Queijo creme", "Queijo flamengo", "Queijo mozzarella", "Queijo parmesão", "Queijo edam", "Manteiga com sal", "Manteiga sem sal", "Margarina", "Natas para bater", "Ovos brancos", "Ovos castanhos", "Presunto", "Fiambre", "Salpicão", "Salame"],
+  "Congelados": ["Pizza congelada", "Nuggets de frango", "Batata frita congelada", "Croquetes", "Lasanha congelada", "Esparguete à bolonhesa congelado", "Peixe congelado", "Camarão congelado", "Gelado", "Gelado de iogurte", "Gelado de frutas", "Gelado de chocolate", "Pão de alho congelado", "Massa folhada congelada", "Empadas congeladas", "Rissóis congelados", "Pasteis de bacalhau congelados", "Legumes congelados", "Ervilhas congeladas", "Espinafres congelados", "Hambúrgueres"],
+  "Carnes & Peixes Frescos": ["Carne picada", "Bife de vaca", "Perna de frango", "Peito de frango", "Asas de frango", "Salsichas", "Linguiça", "Chouriço"],
+  "Hortofrutícola": ["Alface", "Rúcula", "Agrião", "Couve portuguesa", "Espinafres", "Tomate", "Tomate cherry", "Cebola", "Cebola roxa", "Alho", "Pimento verde", "Pimento vermelho", "Abóbora", "Abobrinha", "Berinjela", "Batata", "Batata-doce", "Cenoura", "Nabo", "Pepino", "Abacate", "Maçã", "Banana", "Laranja", "Tangerina", "Pêra", "Uva", "Morango", "Kiwi", "Ananás", "Melancia", "Melão", "Coco", "Romã", "Figo"],
+  "Mercearia Seca & Enlatados": ["Arroz", "Feijão", "Lentilhas", "Grão-de-bico", "Feijão frade", "Massa espiral", "Massa cotovelos", "Massa penne", "Nhoque", "Farinha de trigo", "Farinha de milho", "Fubá", "Cuscuz", "Polvilho doce", "Amido de milho", "Fermento em pó", "Bicarbonato de sódio", "Óleo de girassol", "Óleo de soja", "Azeite virgem extra", "Vinagre de vinho", "Molho de soja", "Ketchup", "Mostarda", "Maionese", "Polpa de tomate", "Concentrado de tomate", "Molho inglês", "Tempero em pó", "Cubos de caldo de legumes", "Cubos de caldo de carne", "Açúcar branco", "Açúcar amarelo", "Açúcar mascavado", "Adoçante", "Mel", "Compota", "Doce de ovos", "Cacau em pó", "Chocolate em pó", "Café molido", "Café solúvel", "Cápsulas de café", "Chá em saqueta", "Chá a granel", "Cappuccino pronto", "Leite em pó", "Bolachas água e sal", "Bolachas Maria", "Bolachas recheadas", "Bolachas de manteiga", "Torradas", "Cereais de pequeno-almoço", "Granola", "Flocos de aveia", "Quinoa", "Sementes de chia", "Sementes de linhaça", "Atum em lata", "Sardinha em lata", "Cavala em lata", "Feijão frade em lata", "Milho em lata", "Ervilhas em lata", "Cogumelos em lata", "Azeitonas", "Pimentos em conserva", "Picles", "Tomate pelado", "Puré de tomate", "Leite condensado", "Leite de coco", "Creme de leite", "Anchovas", "Molho tártaro", "Patê de atum", "Patê de fígado", "Doce de morango"],
+  "Especiarias & Condimentos": ["Pimenta preta", "Cominhos", "Canela", "Noz-moscada", "Cravinho", "Louro", "Orégãos", "Coentros secos", "Açafrão", "Gengibre em pó", "Manteiga de amendoim", "Pasta de sésamo", "Azeite com ervas", "Vinagre balsâmico", "Sal grosso"],
+  "Bebidas": ["Água mineral sem gás", "Água mineral com gás", "Água de coco", "Sumo de laranja", "Sumo de maçã", "Sumo de ananás", "Néctar de pêssego", "Refrigerante de cola", "Refrigerante de laranja", "Refrigerante de limão", "Energético", "Cerveja lager", "Cerveja pilsen", "Cerveja artesanal", "Vinho tinto", "Vinho branco", "Espumante", "Whisky", "Vodka", "Aguardente", "Vinho do Porto", "Licor", "Água tónica", "Sumo de limão", "Bebida vegetal"],
+  "Limpeza Doméstica": ["Detergente da roupa", "Amaciador da roupa", "Sabão em pó", "Detergente da loiça", "Esponja de aço", "Esponja dupla face", "Água lixívia", "Desinfetante multiusos", "Limpa-vidros", "Removedor de calcário", "Tira-graxa", "Saco para aspirador", "Panos de microfibra", "Luvas de limpeza", "Aromatizante ambiente", "Pastilhas para lava-loiça", "Detergente para máquina de lavar", "Amaciador para máquina", "Sabão líquido para as mãos", "Sabonete em barra"],
+  "Casa & Utilidades": ["Sacos do lixo", "Papel alumínio", "Filme aderente", "Fósforos", "Pilhas AA", "Pilhas AAA", "Velas", "Esponjas de cozinha", "Sacos para congelação", "Fita adesiva"],
+  "Higiene Pessoal": ["Sabonete líquido", "Gel de banho", "Creme de barbear", "Espuma de barbear", "Lâminas de barbear", "Cotonetes", "Discos de desmaquilhar", "Desmaquilhante", "Creme facial", "Protetor labial", "Escova de cabelo", "Pente", "Elásticos de cabelo", "Absorventes higiénicos", "Tampões", "Toalhitas húmidas", "Desodorizante roll-on", "Desodorizante em spray", "Creme pós-barba", "Cuidado íntimo feminino", "Escova de dentes", "Pasta de dentes", "Fio dentário"],
+  "Higiene Infantil": ["Fraldas", "Lenços humedecidos", "Pomada para assaduras", "Creme hidratante infantil", "Sabonete líquido infantil"],
+  "Farmácia / Saúde": ["Paracetamol", "Ibuprofeno", "Anti-histamínico", "Termómetro digital", "Pensos rápidos", "Algodão", "Álcool etílico", "Desinfetante para mãos", "Comprimidos para azia", "Xarope para tosse", "Vitamina C", "Multivitamínicos", "Protetor solar", "Creme hidratante corporal", "Creme para pés"],
+  "Pet Shop": ["Ração para cães", "Ração para gatos", "Areia higiénica", "Snacks para cães", "Leite para gatinhos"]
+};
+
+let appData = {};
+let openCategoryName = null;
+let tempCategoryOrder = []; 
+
+// --- FUNÇÕES VISUAIS ---
+function showAlert(msg, type = 'success') {
+    const area = document.getElementById('notification-area');
+    let icon = '✅';
+    if(type === 'error') icon = '❌';
+    if(type === 'info') icon = 'ℹ️';
+    if(type === 'warning') icon = '⚠️';
+
+    const bubble = document.createElement('div');
+    bubble.className = `notify-bubble notify-${type}`;
+    bubble.innerHTML = `<span>${icon} ${msg}</span>`;
+    area.appendChild(bubble);
+
+    setTimeout(() => {
+        bubble.classList.add('hide');
+        setTimeout(() => { bubble.remove(); }, 400);
+    }, 3000);
+}
+
+function showConfirm(msg) {
+    return new Promise((resolve) => {
+        const modal = document.getElementById('confirm-modal');
+        const msgEl = document.getElementById('confirm-msg');
+        const btnYes = document.getElementById('btn-confirm-yes');
+        const btnNo = document.getElementById('btn-confirm-no');
+        msgEl.textContent = msg;
+        modal.style.display = 'flex';
+        btnYes.onclick = () => { modal.style.display = 'none'; resolve(true); };
+        btnNo.onclick = () => { modal.style.display = 'none'; resolve(false); };
+    });
+}
+
+function showInputModal(title, defaultValue = '') {
+    return new Promise((resolve) => {
+        const modal = document.getElementById('input-modal');
+        const input = document.getElementById('modal-input-field');
+        const btnConfirm = document.getElementById('btn-input-confirm');
+        const btnCancel = document.getElementById('btn-input-cancel');
+        const titleEl = document.getElementById('input-title');
+        
+        titleEl.textContent = title;
+        input.value = defaultValue;
+        modal.style.display = 'flex';
+        input.focus();
+
+        btnConfirm.onclick = () => {
+            if (input.value.trim() !== '') {
+                modal.style.display = 'none';
+                resolve(input.value.trim());
+            } else {
+                input.focus();
+            }
+        };
+        
+        btnCancel.onclick = () => {
+            modal.style.display = 'none';
+            resolve(null);
+        };
+
+        input.onkeypress = (e) => {
+            if (e.key === 'Enter' && input.value.trim() !== '') {
+                btnConfirm.click();
+            }
+        };
+    });
+}
+
+// --- LÓGICA DE REORDENAÇÃO ---
+function openReorderModal() {
+    const activeKeys = Object.keys(appData);
+    tempCategoryOrder = CATEGORY_ORDER.filter(k => appData[k]);
+    
+    activeKeys.forEach(k => {
+        if(!tempCategoryOrder.includes(k)) tempCategoryOrder.push(k);
+    });
+
+    renderReorderList();
+    document.getElementById('reorder-modal').style.display = 'flex';
+}
+
+function closeReorderModal() {
+    document.getElementById('reorder-modal').style.display = 'none';
+}
+
+function renderReorderList() {
+    const list = document.getElementById('reorder-list-container');
+    list.innerHTML = '';
+
+    tempCategoryOrder.forEach((cat, index) => {
+        const item = document.createElement('div');
+        item.className = 'reorder-item';
+        
+        const label = document.createElement('span');
+        label.textContent = cat;
+
+        const controls = document.createElement('div');
+        controls.className = 'reorder-controls';
+
+        if (index > 0) {
+            const btnUp = document.createElement('button');
+            btnUp.innerHTML = '⬆️';
+            btnUp.onclick = () => moveCategory(index, -1);
+            controls.appendChild(btnUp);
+        } else {
+            const spacer = document.createElement('span');
+            spacer.style.display = 'inline-block';
+            spacer.style.width = '34px'; 
+            controls.appendChild(spacer);
+        }
+
+        if (index < tempCategoryOrder.length - 1) {
+            const btnDown = document.createElement('button');
+            btnDown.innerHTML = '⬇️';
+            btnDown.onclick = () => moveCategory(index, 1);
+            controls.appendChild(btnDown);
+        }
+
+        item.appendChild(label);
+        item.appendChild(controls);
+        list.appendChild(item);
+    });
+}
+
+function moveCategory(index, direction) {
+    const newIndex = index + direction;
+    [tempCategoryOrder[index], tempCategoryOrder[newIndex]] = [tempCategoryOrder[newIndex], tempCategoryOrder[index]];
+    renderReorderList();
+}
+
+async function saveNewOrder() {
+    CATEGORY_ORDER = [...tempCategoryOrder];
+    closeReorderModal();
+    render();
+    const success = await updateSystem();
+    if (success) showAlert('Ordem de prioridade atualizada!', 'success');
+}
+
+// --- FUNÇÃO DE ORDENAÇÃO A-Z ---
+function sortAllData() {
+    Object.keys(appData).forEach(key => {
+        if (Array.isArray(appData[key])) {
+            appData[key].sort((a, b) => a.localeCompare(b, 'pt', { sensitivity: 'base' }));
+        }
+    });
+}
+
+// --- INICIALIZAÇÃO (LOCAL STORAGE) ---
+const STORAGE_KEY = 'meuGestorComprasV1';
+
+async function init() {
+    const statusMsg = document.getElementById('statusMsg');
+    
+    // Tenta carregar do LocalStorage primeiro
+    const localData = localStorage.getItem(STORAGE_KEY);
+
+    if (localData) {
+        console.log("Carregando do LocalStorage...");
+        try {
+            appData = JSON.parse(localData);
+            CATEGORY_ORDER = Object.keys(appData); // Assume ordem salva
+            statusMsg.style.color = "#2ecc71";
+            statusMsg.textContent = "Dados Locais Carregados";
+            showAlert('Dados recuperados da memória', 'info');
+        } catch(e) {
+            console.error("Erro ao ler LocalStorage", e);
+            appData = JSON.parse(JSON.stringify(BACKUP_DATA));
+        }
+    } else {
+        // Se não tiver local, tenta o JSON (para primeira carga) ou Backup
+        try {
+            const response = await fetch('produtos.json?v=' + new Date().getTime());
+            if (response.ok) {
+                const serverData = await response.json();
+                const keys = Object.keys(serverData);
+                if(keys.length > 0) {
+                    appData = serverData;
+                    CATEGORY_ORDER = keys;
+                } else {
+                    appData = serverData;
+                }
+                statusMsg.style.color = "#3498db";
+                statusMsg.textContent = "Base Padrão Carregada";
+            } else { throw new Error("Erro arquivo"); }
+        } catch (error) {
+            appData = JSON.parse(JSON.stringify(BACKUP_DATA));
+            statusMsg.style.color = "#e67e22";
+            statusMsg.textContent = "Modo Backup";
+        }
+    }
+    
+    sortAllData();
+    render();
+}
+
+function render() {
+    const display = document.getElementById('listDisplay');
+    const select = document.getElementById('categorySelect');
+    const totalCounter = document.getElementById('totalCounter');
+    const currentSelection = select.value;
+    
+    display.innerHTML = ''; select.innerHTML = '';
+    
+    let totalItems = 0;
+
+    const finalKeys = [
+        ...CATEGORY_ORDER.filter(k => appData[k]), 
+        ...Object.keys(appData).filter(k => !CATEGORY_ORDER.includes(k))
+    ];
+
+    finalKeys.forEach(cat => {
+        const opt = document.createElement('option');
+        opt.value = cat; opt.textContent = cat;
+        select.appendChild(opt);
+
+        const block = document.createElement('div');
+        block.className = 'category-block';
+        block.setAttribute('data-category', cat.toLowerCase());
+        
+        const header = document.createElement('div');
+        header.className = `category-header ${cat === openCategoryName ? 'active' : ''}`;
+        header.onclick = () => { openCategoryName = openCategoryName === cat ? null : cat; render(); };
+
+        const titleArea = document.createElement('div');
+        titleArea.className = 'cat-title-area';
+        titleArea.innerHTML = `<span class="cat-arrow">▼</span> ${cat} (${appData[cat].length})`;
+        
+        const actionsDiv = document.createElement('div');
+        actionsDiv.className = 'cat-actions';
+
+        const btnEditCat = document.createElement('button');
+        btnEditCat.innerHTML = '✏️';
+        btnEditCat.className = 'btn-icon btn-edit';
+        btnEditCat.onclick = (e) => { e.stopPropagation(); editCategory(cat); };
+
+        const btnDelete = document.createElement('button');
+        btnDelete.innerHTML = '🗑️';
+        btnDelete.className = 'btn-icon btn-delete';
+        btnDelete.onclick = (e) => { e.stopPropagation(); deleteCategory(cat); };
+
+        actionsDiv.appendChild(btnEditCat);
+        actionsDiv.appendChild(btnDelete);
+
+        header.appendChild(titleArea);
+        header.appendChild(actionsDiv);
+        block.appendChild(header);
+
+        const ul = document.createElement('ul');
+        ul.className = `item-list ${cat === openCategoryName ? 'show' : ''}`;
+        
+        appData[cat].forEach((item, index) => {
+            totalItems++;
+            const li = document.createElement('li');
+            li.setAttribute('data-item', item.toLowerCase());
+            
+            const itemActions = document.createElement('div');
+            itemActions.className = 'item-actions';
+
+            const btnEditItem = document.createElement('button');
+            btnEditItem.innerHTML = '✏️';
+            btnEditItem.className = 'btn-icon btn-edit';
+            btnEditItem.onclick = () => editItem(cat, index);
+
+            const btnDelItem = document.createElement('button');
+            btnDelItem.innerHTML = '&times;';
+            btnDelItem.className = 'delete-btn';
+            btnDelItem.onclick = () => deleteItem(cat, index);
+            
+            itemActions.appendChild(btnEditItem);
+            itemActions.appendChild(btnDelItem);
+
+            li.innerHTML = `<span>${item}</span>`;
+            li.appendChild(itemActions);
+            ul.appendChild(li);
+        });
+        block.appendChild(ul);
+        display.appendChild(block);
+    });
+
+    totalCounter.textContent = totalItems;
+
+    if (currentSelection && appData[currentSelection]) {
+        select.value = currentSelection;
+    } else if (finalKeys.length > 0) {
+        select.value = finalKeys[0];
+    }
+}
+
+// --- NOVO HANDLER UNIFICADO ---
+function handleHybridInput(e) {
+    if (e.key === 'Enter') {
+        addItem();
+    } else {
+        filterItems();
+    }
+}
+
+function filterItems() {
+    const term = document.getElementById('hybridInput').value.toLowerCase();
+    const blocks = document.querySelectorAll('.category-block');
+
+    blocks.forEach(block => {
+        const catName = block.getAttribute('data-category');
+        const items = block.querySelectorAll('li');
+        let hasVisibleItem = false;
+
+        items.forEach(item => {
+            const itemName = item.getAttribute('data-item');
+            if (itemName.includes(term) || catName.includes(term)) {
+                item.classList.remove('hidden');
+                hasVisibleItem = true;
+            } else {
+                item.classList.add('hidden');
+            }
+        });
+
+        const list = block.querySelector('.item-list');
+        if (hasVisibleItem) {
+            block.classList.remove('hidden');
+            if (term.length > 0) {
+                list.classList.add('show');
+            } else {
+                if (openCategoryName !== catName.charAt(0).toUpperCase() + catName.slice(1)) {
+                    list.classList.remove('show');
+                }
+            }
+        } else {
+            block.classList.add('hidden');
+        }
+    });
+}
+
+// --- AUTO SAVE (AGORA NO LOCAL STORAGE) ---
+async function updateSystem() {
+    const indicator = document.getElementById('auto-save-indicator');
+    
+    sortAllData();
+    render();
+    const searchTerm = document.getElementById('hybridInput').value;
+    if(searchTerm) filterItems();
+
+    indicator.style.display = 'block'; 
+    
+    // Organiza os dados
+    const orderedData = {};
+    CATEGORY_ORDER.forEach(k => { if(appData[k]) orderedData[k] = appData[k]; });
+    Object.keys(appData).forEach(k => { if(!orderedData[k]) orderedData[k] = appData[k]; });
+
+    try {
+        // SALVA NO NAVEGADOR (LOCALSTORAGE) EM VEZ DE PHP
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(orderedData));
+        
+        setTimeout(() => { indicator.style.display = 'none'; }, 600);
+        return true; 
+
+    } catch (error) {
+        console.error(error);
+        showAlert('Erro ao salvar na memória!', 'error');
+        indicator.style.display = 'none';
+        return false; 
+    }
+}
+
+function copyDataToClipboard() {
+    const dataStr = JSON.stringify(appData, null, 2);
+    navigator.clipboard.writeText(dataStr).then(() => {
+        showAlert('Dados copiados! Cole onde quiser.', 'info');
+    }).catch(err => {
+        showAlert('Erro ao copiar.', 'error');
+    });
+}
+
+// --- AÇÕES ---
+async function addNewCategory() {
+    const newCat = await showInputModal("Nome da Nova Categoria");
+    
+    if (newCat) {
+        const catFormatted = newCat.charAt(0).toUpperCase() + newCat.slice(1);
+
+        if (appData[catFormatted]) {
+            showAlert('Categoria já existe!', 'error');
+            return;
+        }
+        appData[catFormatted] = [];
+        CATEGORY_ORDER.push(catFormatted);
+        openCategoryName = catFormatted;
+        
+        const success = await updateSystem();
+        if(success) showAlert(`Categoria "${catFormatted}" criada!`, 'success');
+        
+        document.getElementById('categorySelect').value = catFormatted;
+    }
+}
+
+async function editCategory(oldName) {
+    const newName = await showInputModal("Renomear Categoria", oldName);
+    
+    if (newName && newName !== oldName) {
+        const catFormatted = newName.charAt(0).toUpperCase() + newName.slice(1);
+        
+        if (appData[catFormatted]) {
+            showAlert('Já existe uma categoria com esse nome!', 'error');
+            return;
+        }
+
+        appData[catFormatted] = appData[oldName];
+        delete appData[oldName];
+
+        const idx = CATEGORY_ORDER.indexOf(oldName);
+        if (idx !== -1) CATEGORY_ORDER[idx] = catFormatted;
+        else CATEGORY_ORDER.push(catFormatted);
+
+        if (openCategoryName === oldName) openCategoryName = catFormatted;
+
+        const success = await updateSystem();
+        if(success) showAlert('Categoria renomeada!', 'success');
+    }
+}
+
+async function deleteCategory(catName) {
+    const qtd = appData[catName].length;
+    let msg = `Excluir a categoria "${catName}"?`;
+    
+    if (qtd > 0) {
+        msg = `ATENÇÃO: A categoria "${catName}" tem ${qtd} produtos. Deseja excluir TUDO?`;
+    }
+
+    const confirmado = await showConfirm(msg);
+    
+    if (confirmado) {
+        delete appData[catName];
+        if (openCategoryName === catName) openCategoryName = null;
+        
+        const success = await updateSystem();
+        if(success) showAlert('Categoria excluída.', 'info');
+    }
+}
+
+async function addItem() {
+    const cat = document.getElementById('categorySelect').value;
+    const input = document.getElementById('hybridInput');
+    const item = input.value.trim();
+
+    if (item && cat) {
+        const formattedItem = item.charAt(0).toUpperCase() + item.slice(1);
+        
+        const exists = appData[cat].some(existingItem => 
+            existingItem.toLowerCase() === formattedItem.toLowerCase()
+        );
+
+        if (exists) {
+            showAlert('Item duplicado!', 'error');
+            return;
+        }
+
+        appData[cat].push(formattedItem);
+        input.value = '';
+        openCategoryName = cat;
+        
+        // Remove filtro (pois limpamos o input) e atualiza
+        const blocks = document.querySelectorAll('.category-block');
+        blocks.forEach(b => { 
+            b.classList.remove('hidden'); 
+            b.querySelector('.item-list').classList.remove('show'); 
+        });
+
+        const success = await updateSystem(); 
+        if(success) showAlert(`Item salvo em: ${cat}`, 'success');
+    } else if (!item) {
+        showAlert('Digite o nome do produto!', 'warning');
+        input.focus();
+    }
+}
+
+async function editItem(cat, idx) {
+    const oldItemName = appData[cat][idx];
+    const newItemName = await showInputModal("Editar Produto", oldItemName);
+
+    if (newItemName && newItemName !== oldItemName) {
+        const formattedItem = newItemName.charAt(0).toUpperCase() + newItemName.slice(1);
+        
+        const exists = appData[cat].some((existingItem, i) => 
+            i !== idx && existingItem.toLowerCase() === formattedItem.toLowerCase()
+        );
+
+        if (exists) {
+            showAlert('Esse produto já existe na lista!', 'error');
+            return;
+        }
+
+        appData[cat][idx] = formattedItem;
+        const success = await updateSystem();
+        if(success) showAlert('Produto atualizado!', 'success');
+    }
+}
+
+async function deleteItem(cat, idx) {
+    event.stopPropagation();
+    const itemNome = appData[cat][idx];
+    const confirmado = await showConfirm(`Tem certeza que deseja remover "${itemNome}"?`);
+    
+    if(confirmado) {
+        appData[cat].splice(idx, 1);
+        openCategoryName = cat;
+        
+        const success = await updateSystem();
+        if(success) showAlert('Item removido.', 'info');
+    }
+}
+
+function downloadTXT() {
+    const orderedData = {};
+    CATEGORY_ORDER.forEach(k => { if(appData[k]) orderedData[k] = appData[k]; });
+    Object.keys(appData).forEach(k => { if(!orderedData[k]) orderedData[k] = appData[k]; });
+    
+    const a = document.createElement('a');
+    a.href = "data:text/plain;charset=utf-8," + encodeURIComponent(JSON.stringify(orderedData, null, 2));
+    a.download = "produtos.json";
+    document.body.appendChild(a); a.click(); a.remove();
+}
+
+async function forceReset() { 
+    const sim = await showConfirm('Apagar TUDO e restaurar padrão?');
+    if(sim) {
+        localStorage.removeItem(STORAGE_KEY);
+        location.reload();
+    }
+}
+
+function closeApp() { 
+    document.getElementById('app-content').style.display='none'; 
+    document.getElementById('closed-screen').style.display='flex'; 
+}
+
+init();
+</script>
+</body>
+</html>
